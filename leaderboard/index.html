@@ -32,18 +32,21 @@
           <path d="M4 9 C 64 2, 128 13, 192 6 S 268 11, 296 5" />
         </svg>
         <p class="subtitle" id="subtitle">Loading…</p>
-      </div>
-
-      <div class="tools">
-        <button class="btn" id="refreshBtn" type="button">
-          <span class="ic" aria-hidden="true">🔄</span>Refresh
-        </button>
+        <p class="raffle-banner">
+          <span class="tix" aria-hidden="true">🎟️</span>
+          Top of the board = best odds in the <span class="amt">$1,000</span> raffle drawing
+        </p>
       </div>
     </header>
 
     <main id="board"></main>
 
-    <footer class="foot" id="foot"></footer>
+    <footer class="foot">
+      <span id="foot" class="status"></span>
+      <button class="btn" id="refreshBtn" type="button">
+        <span class="ic" aria-hidden="true">🔄</span>Refresh
+      </button>
+    </footer>
   </div>
 
   <!-- config.js MUST load before app.js (it defines SHEET_URL etc.) -->

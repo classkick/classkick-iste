@@ -32,6 +32,15 @@ relative (`styles.css`, not `/styles.css`) so each activity stays portable.
 2. Drop an `index.html` (plus any CSS/JS) inside it.
 3. Commit and push — it goes live at `…/<repo>/signup/`.
 
+## Local Testing
+
+From within the folder run
+```
+python3 -m http.server 8000
+```
+
+Visit `http://localhost:8000/leaderboard/index.html`
+
 ## Deploy
 
 Enable once, under **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**.

@@ -10,6 +10,8 @@ const AVATAR_COLORS   = ["#25c582", "#ffdf78", "#3498fe", "#82c3fb", "#723dff", 
 const CONFETTI_COLORS = ["#25c582", "#ffdf78", "#88c043", "#3498fe", "#ff6b6b", "#723dff", "#e86826"];
 const CUTE_EMOJI      = ["🐱", "🐶", "🦊", "🐰", "🐼", "🐸", "🦄", "🐧", "🐯", "🐨", "🦁", "🐵", "🦉", "🐙", "🐢", "🦖", "🐥", "🐝"];
 
+const TICKET_EMOJI    = "🎟️"; // shown next to each player's raffle-ticket count
+
 /* Classkick stickers — the default avatars, assigned by rank position */
 const STICKER_BASE = "https://assets.classkick.com/sticker-images/";
 const STICKERS = [
@@ -37,7 +39,7 @@ const STICKERS = [
 const state = {
   headers: [],
   rows: [],
-  map: { name: "", score: "" },
+  map: { name: "", tickets: "", rank: "" },
 };
 
 let lastLeaderKey = null; // so confetti only fires when the leader changes
@@ -74,8 +76,9 @@ function numify(v) {
   return isNaN(n) ? NaN : n;
 }
 
-function fmtScore(s) {
-  return isNaN(s) ? "—" : s.toLocaleString();
+// Raffle-ticket count -> "🎟️ 15" (replaces the old raw-score display).
+function fmtTickets(n) {
+  return isNaN(n) ? "—" : `${TICKET_EMOJI} ${n.toLocaleString()}`;
 }
 
 /* ── CSV parser (handles quotes, commas, newlines) ─────────── */
@@ -140,21 +143,32 @@ function guess(headers, kinds) {
 }
 
 function resolveMap(headers, sampleRow) {
-  const name = NAME_COLUMN
+  // Config overrides are optional; guard so undeclared ones don't throw.
+  const nameCfg    = (typeof NAME_COLUMN    !== "undefined") ? NAME_COLUMN    : "";
+  const ticketsCfg = (typeof TICKETS_COLUMN !== "undefined") ? TICKETS_COLUMN : "";
+  const rankCfg    = (typeof RANK_COLUMN    !== "undefined") ? RANK_COLUMN    : "";
+
+  const name = nameCfg
     || guess(headers, ["name", "player", "student", "team", "person", "user", "who"])
     || headers[0]
     || "";
 
-  let score = SCORE_COLUMN
-    || guess(headers, ["score", "points", "pts", "total", "wins", "stars", "amount", "value", "count"]);
+  // Number of raffle tickets — the value we now display instead of a raw score.
+  // ("raffle" alone is avoided so it can't latch onto the "Raffle Rank" column.)
+  let tickets = ticketsCfg
+    || guess(headers, ["raffle tickets", "tickets", "tix", "entries"]);
 
-  if (!score) {
+  if (!tickets) {
     for (const h of headers) {
-      if (h !== name && !isNaN(numify(sampleRow?.[h]))) { score = h; break; }
+      if (h !== name && !isNaN(numify(sampleRow?.[h]))) { tickets = h; break; }
     }
   }
 
-  return { name, score };
+  // Pre-computed raffle rank from the sheet (1 = best; ties share a number).
+  const rank = rankCfg
+    || guess(headers, ["raffle rank", "rank"]);
+
+  return { name, tickets, rank };
 }
 
 /* ── Data fetch ────────────────────────────────────────────── */
@@ -191,21 +205,37 @@ async function loadFromUrl(raw) {
 /* ── Build normalized + ranked entries ─────────────────────── */
 
 function entries() {
-  const { name, score } = state.map;
+  const { name, tickets, rank } = state.map;
 
   const data = state.rows
-    .map(r => ({ name: r[name] || "—", score: numify(r[score]) }))
+    .map(r => ({
+      name: r[name] || "—",
+      tickets: numify(r[tickets]),
+      rank: rank ? numify(r[rank]) : NaN,
+    }))
     .filter(e => e.name && e.name !== "—");
 
-  data.sort((a, b) => (isNaN(b.score) ? -1e9 : b.score) - (isNaN(a.score) ? -1e9 : a.score));
-
-  let rank = 0, prev = null, seen = 0;
-  data.forEach((e, i) => {
-    seen++;
-    if (e.score !== prev) { rank = seen; prev = e.score; }
-    e.rank = rank;
-    e.pos = i;
+  // Order by the sheet's raffle rank (1 = best); ticket count breaks ties
+  // within a shared rank. Rows without a rank fall to the bottom.
+  data.sort((a, b) => {
+    const ra = isNaN(a.rank) ? Infinity : a.rank;
+    const rb = isNaN(b.rank) ? Infinity : b.rank;
+    if (ra !== rb) return ra - rb;
+    return (isNaN(b.tickets) ? -1e9 : b.tickets) - (isNaN(a.tickets) ? -1e9 : a.tickets);
   });
+
+  // If the sheet had no rank column, derive one from ticket count so the board
+  // still shows tied ranks (1, 2, 2, 4) keyed on tickets.
+  if (!rank) {
+    let r = 0, prev = null, seen = 0;
+    data.forEach(e => {
+      seen++;
+      if (e.tickets !== prev) { r = seen; prev = e.tickets; }
+      e.rank = r;
+    });
+  }
+
+  data.forEach((e, i) => { e.pos = i; });
 
   return data;
 }
@@ -247,13 +277,13 @@ function render() {
   }
 
   // fire confetti only on first show or when the #1 spot changes
-  const leaderKey = data[0].name + "|" + data[0].score;
+  const leaderKey = data[0].name + "|" + data[0].tickets;
   const leaderChanged = leaderKey !== lastLeaderKey;
   lastLeaderKey = leaderKey;
 
   const top = data.slice(0, 3);
   const rest = data.slice(3);
-  const maxScore = Math.max(...data.map(e => (isNaN(e.score) ? 0 : e.score)), 1);
+  const maxTickets = Math.max(...data.map(e => (isNaN(e.tickets) ? 0 : e.tickets)), 1);
 
   // podium order: 2nd, 1st, 3rd
   const order = [top[1], top[0], top[2]];
@@ -269,7 +299,7 @@ function render() {
         ${avaMarkup(e, false)}
         <span class="tag">${tags[i]}</span>
         <div class="nm">${escapeHtml(e.name)}</div>
-        <div class="sc">${fmtScore(e.score)}</div>
+        <div class="sc">${fmtTickets(e.tickets)}</div>
       </div>
     </div>`;
   }).join("")}</div>`;
@@ -281,9 +311,9 @@ function render() {
           ${avaMarkup(e, true)}
           <div class="who">
             <div class="nm">${escapeHtml(e.name)}</div>
-            <div class="bar"><span data-w="${Math.max(6, Math.round((isNaN(e.score) ? 0 : e.score) / maxScore * 100))}"></span></div>
+            <div class="bar"><span data-w="${Math.max(6, Math.round((isNaN(e.tickets) ? 0 : e.tickets) / maxTickets * 100))}"></span></div>
           </div>
-          <div class="score">${fmtScore(e.score)}</div>
+          <div class="score">${fmtTickets(e.tickets)}</div>
         </div>`).join("")}</div>`
     : "";
 
