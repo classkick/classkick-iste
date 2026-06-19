@@ -294,7 +294,7 @@ function render() {
     setTimeout(() => document.querySelectorAll(".bar>span").forEach(s => (s.style.width = s.dataset.w + "%")), 120);
   });
 
-  setFoot('<span class="live"><span class="dot"></span> Live from your Google Sheet</span>');
+  setFoot('<span class="live"><span class="dot"></span> Live</span>');
 
   if (leaderChanged) confettiBurst();
 }
