@@ -81,6 +81,21 @@ function fmtTickets(n) {
   return isNaN(n) ? "—" : `${TICKET_EMOJI} ${n.toLocaleString()}`;
 }
 
+// Raffle rank -> "1st", "2nd", "3rd", "11th"… Ties share a rank, so tied
+// players produce the same ordinal.
+function ordinal(n) {
+  if (isNaN(n)) return "—";
+  const v = Math.abs(n) % 100;
+  const suffix = (v >= 11 && v <= 13) ? "th" : (["th", "st", "nd", "rd"][n % 10] || "th");
+  return n + suffix;
+}
+
+// Medal for a raffle rank — crown for 1st, then silver/bronze, then a generic
+// medal. Driven by rank so a tie reads consistently (e.g. 👑 / 👑 / 👑).
+function medalFor(rank) {
+  return ({ 1: "👑", 2: "🥈", 3: "🥉" })[rank] || "🏅";
+}
+
 /* ── CSV parser (handles quotes, commas, newlines) ─────────── */
 
 function parseCSV(text) {
@@ -285,19 +300,19 @@ function render() {
   const rest = data.slice(3);
   const maxTickets = Math.max(...data.map(e => (isNaN(e.tickets) ? 0 : e.tickets)), 1);
 
-  // podium order: 2nd, 1st, 3rd
+  // Podium is laid out 2nd–1st–3rd by board position, but the medal and tag
+  // come from each player's actual raffle rank, so tied players read the same
+  // here as in the list below (e.g. a three-way tie shows 1st / 1st / 1st).
   const order = [top[1], top[0], top[2]];
   const place = ["p2", "p1", "p3"];
-  const medals = ["🥈", "👑", "🥉"];
-  const tags = ["2nd", "1st", "3rd"];
 
   const podium = `<div class="podium">${order.map((e, i) => {
     if (!e) return `<div></div>`;
     return `<div class="pod ${place[i]}" style="animation-delay:${i * 0.12}s">
-      <div class="medal">${medals[i]}</div>
+      <div class="medal">${medalFor(e.rank)}</div>
       <div class="podcard">
         ${avaMarkup(e, false)}
-        <span class="tag">${tags[i]}</span>
+        <span class="tag">${ordinal(e.rank)}</span>
         <div class="nm">${escapeHtml(e.name)}</div>
         <div class="sc">${fmtTickets(e.tickets)}</div>
       </div>
