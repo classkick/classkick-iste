@@ -30,4 +30,4 @@ const SCORE_COLUMN = "";
  *  Auto-reload the whole page every N seconds (0 = off).
  *  Each reload re-fetches the sheet and replays the confetti.
  * ──────────────────────────────────────────────────────────── */
-const RELOAD_SECONDS = 30;
+const RELOAD_SECONDS = 0;
