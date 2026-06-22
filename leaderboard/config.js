@@ -16,7 +16,7 @@
  *
  *  While this is left empty, the page shows setup instructions.
  * ──────────────────────────────────────────────────────────── */
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSMW5UU_rHBPGYD1gb3LitrcC_RL7_VCKNeSOUmaX9owfy2dq2dLNPMi4VxCFqR03YNUXIbG4OdBFSh/pub?gid=0&single=true&output=csv";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_52IA7nzA2oyJ296dEPw0AvfYkglWSN1aoMWEzb5q-Q/edit?usp=sharing";
 
 /* ────────────────────────────────────────────────────────────
  *  Optional — force which columns to use, by their EXACT header
