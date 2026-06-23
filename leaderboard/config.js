@@ -16,7 +16,7 @@
  *
  *  While this is left empty, the page shows setup instructions.
  * ──────────────────────────────────────────────────────────── */
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_52IA7nzA2oyJ296dEPw0AvfYkglWSN1aoMWEzb5q-Q/edit?usp=sharing";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_52IA7nzA2oyJ296dEPw0AvfYkglWSN1aoMWEzb5q-Q/edit#gid=1283473704";
 
 /* ────────────────────────────────────────────────────────────
  *  Optional — force which columns to use, by their EXACT header
