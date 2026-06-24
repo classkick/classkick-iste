@@ -345,6 +345,29 @@
         font-weight: 800;
         box-shadow: var(--shadow-lift);
       }
+      /* gold accent for the grand prize tier */
+      .prize.gold {
+        border-color: var(--gold);
+        background: linear-gradient(180deg, #fffdf5, #fff6db);
+      }
+      .prize.gold .amt {
+        color: #e6a700;
+      }
+      .prize.gold.active {
+        border-color: var(--gold);
+        box-shadow: 0 14px 30px rgba(245, 181, 33, 0.32);
+      }
+      .prize.gold.active .amt {
+        color: #e6a700;
+      }
+      .prize.gold.active::after {
+        background: var(--gold);
+        color: #5a3d00;
+      }
+      .prize.gold.done .check {
+        background: var(--gold);
+        color: #5a3d00;
+      }
 
       /* ---------- Wheel stage ---------- */
       .stage {
@@ -1765,6 +1788,73 @@
         transform: translate(-50%, 0);
       }
 
+      /* ===== now-drawing marquee ===== */
+      .marquee {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(8px, 1.5vw, 20px);
+        margin: clamp(4px, 1vh, 12px) auto 0;
+        padding: clamp(6px, 1vh, 12px) clamp(16px, 2.4vw, 34px);
+        width: max-content;
+        max-width: 92vw;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 2px solid var(--green-200);
+        box-shadow: var(--shadow-lift);
+        z-index: 2;
+      }
+      .marquee .mq-label {
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-size: clamp(10px, 1.3vw, 15px);
+        color: var(--green-500);
+        opacity: 0.85;
+      }
+      .marquee .mq-medal {
+        font-size: clamp(20px, 2.6vw, 34px);
+        line-height: 1;
+      }
+      .marquee .mq-place {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(15px, 1.9vw, 26px);
+        color: var(--ink);
+      }
+      .marquee .mq-amt {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(28px, 4.4vw, 60px);
+        line-height: 1;
+        color: var(--green-400);
+        text-shadow: 0 4px 14px rgba(20, 153, 98, 0.22);
+      }
+      /* gold treatment for the grand prize */
+      .marquee.gold {
+        border-color: var(--gold);
+        background: linear-gradient(#fffdf5, #fff6db);
+      }
+      .marquee.gold .mq-label {
+        color: #b8860b;
+      }
+      .marquee.gold .mq-amt {
+        color: #e6a700;
+        text-shadow: 0 4px 16px rgba(245, 181, 33, 0.4);
+      }
+      .marquee.done {
+        border-color: var(--gold);
+        background: linear-gradient(#fffdf5, #fff6db);
+      }
+      .marquee.done .mq-label {
+        font-size: clamp(16px, 2.2vw, 28px);
+        font-family: "Fredoka", sans-serif;
+        color: #b8860b;
+        letter-spacing: 0.04em;
+        text-transform: none;
+        opacity: 1;
+      }
+
       /* ===== living background atmosphere ===== */
       .atmo {
         position: fixed;
@@ -1867,6 +1957,8 @@
         <h1 class="title"><span class="spark">🎉</span> Grand Prize Raffle</h1>
         <p class="subtitle"><span>🍎</span> Mission: Make Teachers Visible</p>
       </header>
+
+      <div class="marquee" id="marquee"></div>
 
       <div class="stage">
         <div class="rail" id="rail"></div>
@@ -3207,12 +3299,13 @@
         const rail = $("#rail");
         rail.innerHTML = PRIZES.map((p, i) => {
           const win = state.winners.find((w) => w.idx === i);
+          const grand = i === PRIZES.length - 1 ? " gold" : "";
           const cls = win
             ? "done"
             : i === state.prizeIndex && state.phase !== "podium"
               ? "active"
               : "";
-          return `<div class="prize ${cls}">
+          return `<div class="prize ${cls}${grand}">
       ${win ? '<div class="check">✓</div>' : ""}
       <div class="medal">${p.medal}</div>
       <div>
@@ -3222,6 +3315,25 @@
       </div>
     </div>`;
         }).join("");
+        renderMarquee();
+      }
+
+      function renderMarquee() {
+        const mq = $("#marquee");
+        if (!mq) return;
+        if (PRIZES.every((p, k) => isAwarded(k))) {
+          mq.className = "marquee done";
+          mq.innerHTML = `<span class="mq-label">🏆 All prizes drawn</span>`;
+          return;
+        }
+        const i = state.prizeIndex;
+        const p = PRIZES[i];
+        mq.className = "marquee" + (i === PRIZES.length - 1 ? " gold" : "");
+        mq.innerHTML = `
+      <span class="mq-label">Now drawing</span>
+      <span class="mq-medal">${p.medal}</span>
+      <span class="mq-place">${p.place} prize</span>
+      <span class="mq-amt">${p.amount}</span>`;
       }
 
       function renderPrizeSelect() {
