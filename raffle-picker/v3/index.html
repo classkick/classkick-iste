@@ -365,6 +365,11 @@
       /* awarded winner shown with their sticker + initials */
       .prize .pinfo {
         min-width: 0;
+        border-left: 2px dashed var(--green-200);
+        padding-left: 12px;
+      }
+      .prize.gold .pinfo {
+        border-left-color: #e8c879;
       }
       .won {
         display: flex;
@@ -788,6 +793,29 @@
       }
       .status .warn {
         color: var(--orange);
+      }
+      .status .ticketcount {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--card);
+        border: 1.5px dashed var(--green-200);
+        border-radius: 999px;
+        padding: 6px 16px;
+        box-shadow: var(--shadow-card);
+      }
+      .status .ticketcount .tk {
+        font-size: 15px;
+        line-height: 1;
+      }
+      .status .ticketcount b {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--green-500);
+      }
+      .status .ticketcount .sep {
+        opacity: 0.55;
       }
 
       /* ---------- Bottom bar ---------- */
@@ -3426,10 +3454,11 @@
         const exc = state.excluded
           ? ` · ${state.excluded} skipped (no tickets)`
           : "";
+        const lead = state.live
+          ? '<span class="dot"></span>'
+          : '<span class="tk">🎟️</span>';
         setStatus(
-          state.live
-            ? `<span class="live"><span class="dot"></span> ${n} entrants · ${totalT} tickets${exc}</span>`
-            : `Sample · ${n} entrants · ${totalT} tickets`,
+          `<span class="ticketcount${state.live ? " live" : ""}">${lead} <b>${totalT.toLocaleString()}</b> tickets in the drum <span class="sep">·</span> ${n} ${n === 1 ? "teacher" : "teachers"}${exc}</span>`,
         );
       }
 
