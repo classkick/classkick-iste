@@ -1731,6 +1731,39 @@
       #drawLever.ready {
         visibility: visible;
       }
+
+      /* ===== kiosk / show mode ===== */
+      body.kiosk .gear {
+        display: none;
+      }
+      body.kiosk.hide-cursor,
+      body.kiosk.hide-cursor * {
+        cursor: none !important;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        transform: translate(-50%, 20px);
+        z-index: 90;
+        background: rgba(44, 52, 56, 0.92);
+        color: #fff;
+        font-family: "Manrope", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        box-shadow: var(--shadow-lift);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
     </style>
   </head>
   <body>
@@ -1795,6 +1828,8 @@
       <div class="status" id="status"></div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <!-- operator controls: hidden overlay, toggled with the gear or the C key -->
     <button
       class="gear"
@@ -1835,6 +1870,9 @@
         </button>
         <button class="tool" id="fsBtn">
           <span class="ic">⛶</span> Fullscreen
+        </button>
+        <button class="tool primary" id="kioskBtn">
+          <span class="ic">🖥️</span> Show mode
         </button>
         <button class="tool" id="muteBtn">
           <span class="ic">🔊</span> Sound
@@ -3937,6 +3975,44 @@
       }
       $("#gearBtn").onclick = () => toggleControls();
       $("#ctrlClose").onclick = () => toggleControls(false);
+
+      /* ---------- kiosk / show mode ---------- */
+      let cursorTimer = null;
+      function showToast(msg, ms = 3200) {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), ms);
+      }
+      function armCursorHide() {
+        document.body.classList.remove("hide-cursor");
+        clearTimeout(cursorTimer);
+        if (document.body.classList.contains("kiosk"))
+          cursorTimer = setTimeout(
+            () => document.body.classList.add("hide-cursor"),
+            2500,
+          );
+      }
+      function enterKiosk() {
+        document.body.classList.add("kiosk");
+        toggleControls(false);
+        $("#panel").classList.remove("open");
+        if (!document.fullscreenElement)
+          document.documentElement.requestFullscreen?.();
+        showToast("Show mode on — press C for controls, Esc to exit");
+        armCursorHide();
+      }
+      function exitKiosk() {
+        if (!document.body.classList.contains("kiosk")) return;
+        document.body.classList.remove("kiosk", "hide-cursor");
+        clearTimeout(cursorTimer);
+      }
+      $("#kioskBtn").onclick = enterKiosk;
+      addEventListener("mousemove", () => {
+        if (document.body.classList.contains("kiosk")) armCursorHide();
+      });
+
       $("#drawLever").onclick = draw;
       $("#spinBtn2").onclick = draw;
       $("#settingsBtn").onclick = () => $("#panel").classList.toggle("open");
@@ -4012,17 +4088,25 @@
         if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
           return;
         if (e.code === "Space") {
+          // result lock: Space only starts a draw when idle; it never advances
+          // a reveal, so a stray press during applause can't do anything
           e.preventDefault();
           if (state.phase === "idle") draw();
-          else if (state.phase === "revealing") {
-            const b = $("#nextBtn");
-            if (b) b.click();
+        } else if (e.key === "Enter") {
+          if (state.phase === "revealing") {
+            e.preventDefault();
+            $("#nextBtn")?.click();
           }
+        } else if (e.key === "r" || e.key === "R") {
+          if (state.phase === "revealing") $("#redrawBtn")?.click();
         } else if (e.key === "f" || e.key === "F") {
           toggleFs();
         } else if (e.key === "c" || e.key === "C") {
+          // operator access: opening controls also leaves show mode
+          if (!$("#controls").classList.contains("open")) exitKiosk();
           toggleControls();
         } else if (e.key === "Escape") {
+          exitKiosk();
           closeWall();
           $("#panel").classList.remove("open");
           toggleControls(false);
