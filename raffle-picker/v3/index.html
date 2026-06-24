@@ -1949,12 +1949,21 @@
         font-size: 16px;
         animation: fxRise var(--dur) cubic-bezier(0.25, 0.6, 0.35, 1) forwards;
       }
+      /* outer element travels along a serpentine path; inner flutters in the air */
       .fx-streamer {
-        height: clamp(7px, 0.9vh, 12px);
-        border-radius: 999px;
         animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
       }
+      .fx-streamer .rib {
+        display: block;
+        height: clamp(7px, 0.9vh, 12px);
+        border-radius: 999px;
+        transform-origin: center;
+        animation: ribFlutter var(--fdur) ease-in-out infinite;
+      }
       .fx-banner {
+        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+      }
+      .fx-banner .bnr {
         display: inline-flex;
         align-items: center;
         padding: clamp(7px, 0.9vh, 11px) clamp(22px, 2vw, 30px)
@@ -1973,7 +1982,26 @@
           100% 100%,
           0 100%
         );
-        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+        transform-origin: center;
+        animation: bnrWave var(--fdur) ease-in-out infinite;
+      }
+      @keyframes ribFlutter {
+        0%,
+        100% {
+          transform: skewX(-22deg) scaleY(0.5) rotate(-6deg);
+        }
+        50% {
+          transform: skewX(22deg) scaleY(1.15) rotate(6deg);
+        }
+      }
+      @keyframes bnrWave {
+        0%,
+        100% {
+          transform: rotate(-2.6deg) translateY(-2px);
+        }
+        50% {
+          transform: rotate(2.6deg) translateY(2px);
+        }
       }
       @keyframes fxRise {
         0% {
@@ -2003,8 +2031,14 @@
         12% {
           opacity: var(--op);
         }
+        25% {
+          transform: translate(var(--x1), var(--y1)) rotate(var(--rot)) scale(1);
+        }
         50% {
-          transform: translate(var(--mx), var(--my)) rotate(var(--rot)) scale(1);
+          transform: translate(var(--x2), var(--y2)) rotate(var(--rot)) scale(1);
+        }
+        75% {
+          transform: translate(var(--x3), var(--y3)) rotate(var(--rot)) scale(1);
         }
         88% {
           opacity: var(--op);
@@ -4056,6 +4090,8 @@
             vr: (Math.random() - 0.5) * 0.45,
             c: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
             life: 0,
+            phase: Math.random() * Math.PI * 2,
+            sway: 0.7 + Math.random() * 1.5,
           });
         }
         if (!raf) tickConf();
@@ -4064,7 +4100,7 @@
         cx.clearRect(0, 0, cv.width, cv.height);
         bits.forEach((b) => {
           b.vy += b.g;
-          b.x += b.vx;
+          b.x += b.vx + Math.sin(b.life * 0.12 + b.phase) * b.sway; // air flutter
           b.y += b.vy;
           b.rot += b.vr;
           b.life++;
@@ -4570,6 +4606,32 @@
         return { startX, startY, dx, dy };
       }
 
+      // serpentine waypoints: weave perpendicular to the travel direction so the
+      // element wiggles through the air instead of flying in a straight line
+      function fxPath(dx, dy, ampFrac, W, H) {
+        const len = Math.hypot(dx, dy) || 1;
+        const px = -dy / len,
+          py = dx / len; // unit perpendicular
+        const amp = ampFrac * Math.min(W, H);
+        const wp = (f, sign) => ({
+          x: dx * f + px * amp * sign,
+          y: dy * f + py * amp * sign,
+        });
+        const p1 = wp(0.25, 1),
+          p2 = wp(0.5, -1),
+          p3 = wp(0.75, 1);
+        return {
+          dx,
+          dy,
+          x1: p1.x,
+          y1: p1.y,
+          x2: p2.x,
+          y2: p2.y,
+          x3: p3.x,
+          y3: p3.y,
+        };
+      }
+
       function fxStreamer(layer, side, W, H) {
         const g = fxGeom(side, W, H);
         const c1 =
@@ -4578,15 +4640,17 @@
           STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
         const el = document.createElement("div");
         el.className = "fx-streamer";
-        el.style.width = fxRand(7, 16) + "vw";
-        el.style.background = `repeating-linear-gradient(90deg, ${c1} 0 16px, ${c2} 16px 32px)`;
         el.style.left = g.startX + "px";
         el.style.top = g.startY + "px";
+        const rib = document.createElement("div");
+        rib.className = "rib";
+        rib.style.width = fxRand(7, 16) + "vw";
+        rib.style.background = `repeating-linear-gradient(90deg, ${c1} 0 16px, ${c2} 16px 32px)`;
+        rib.style.setProperty("--fdur", fxRand(0.34, 0.6).toFixed(2) + "s");
+        rib.style.animationDelay = -fxRand(0, 0.6).toFixed(2) + "s";
+        el.appendChild(rib);
         fxVars(el, {
-          dx: g.dx,
-          dy: g.dy,
-          mx: g.dx * 0.5 + fxRand(-0.05, 0.05) * W,
-          my: g.dy * 0.5 - fxRand(0.04, 0.1) * H,
+          ...fxPath(g.dx, g.dy, fxRand(0.05, 0.11), W, H),
           rot: (Math.atan2(g.dy, g.dx) * 180) / Math.PI + "deg",
           op: fxRand(0.7, 0.9),
         });
@@ -4597,15 +4661,17 @@
         const g = fxGeom(side, W, H);
         const el = document.createElement("div");
         el.className = "fx-banner";
-        el.style.background = BANNER_COLORS[idx % BANNER_COLORS.length];
-        el.textContent = text;
         el.style.left = g.startX + "px";
         el.style.top = g.startY + "px";
+        const bnr = document.createElement("div");
+        bnr.className = "bnr";
+        bnr.style.background = BANNER_COLORS[idx % BANNER_COLORS.length];
+        bnr.textContent = text;
+        bnr.style.setProperty("--fdur", fxRand(0.95, 1.35).toFixed(2) + "s");
+        bnr.style.animationDelay = -fxRand(0, 1).toFixed(2) + "s";
+        el.appendChild(bnr);
         fxVars(el, {
-          dx: g.dx,
-          dy: g.dy * 0.92,
-          mx: g.dx * 0.5,
-          my: g.dy * 0.5 - fxRand(0.03, 0.08) * H,
+          ...fxPath(g.dx, g.dy * 0.92, fxRand(0.025, 0.05), W, H),
           rot: (side < 0 ? fxRand(-25, -18) : fxRand(18, 25)) + "deg",
           op: fxRand(0.92, 1),
         });
