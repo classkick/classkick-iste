@@ -1006,6 +1006,19 @@
       .wincard.in .cap {
         animation: rise 0.45s ease 0.5s forwards;
       }
+      .wincard .prizebig {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(44px, 8vw, 96px);
+        line-height: 1.02;
+        color: var(--green-400);
+        margin: 6px 0 2px;
+        text-shadow: 0 6px 18px rgba(20, 153, 98, 0.22);
+        opacity: 0;
+      }
+      .wincard.in .prizebig {
+        animation: rise 0.45s ease 0.46s forwards;
+      }
       .wincard .subemail {
         font-weight: 700;
         color: var(--muted);
@@ -1651,6 +1664,45 @@
         display: block;
         z-index: 1;
       }
+      /* suspense countdown over the chamber */
+      .countdown {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 7;
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(120px, 26vh, 320px);
+        color: var(--green-400);
+        -webkit-text-stroke: 7px #fff;
+        paint-order: stroke fill;
+        text-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+        opacity: 0;
+      }
+      .countdown.show {
+        animation: countpop 0.62s ease-out;
+      }
+      @keyframes countpop {
+        0% {
+          opacity: 0;
+          transform: scale(2.3);
+        }
+        22% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        78% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+      }
       /* the lever is positioned by JS over the projected dome rim */
       #drawLever {
         position: absolute;
@@ -1702,6 +1754,7 @@
       <div class="stage">
         <div class="rail" id="rail"></div>
         <canvas id="scene" aria-hidden="true"></canvas>
+        <div class="countdown" id="countdown" aria-hidden="true"></div>
         <div class="note" id="note" style="display: none">
           <div class="inner">
             <div class="big">🫧</div>
@@ -3113,6 +3166,31 @@
         M3.winnerBall = null;
       }
 
+      // a "3, 2, 1" countdown over the churning chamber for suspense
+      function showCountdown() {
+        return new Promise((resolve) => {
+          const el = $("#countdown");
+          const seq = ["3", "2", "1"];
+          let i = 0;
+          const tick = () => {
+            if (i >= seq.length) {
+              el.classList.remove("show");
+              el.textContent = "";
+              resolve();
+              return;
+            }
+            el.textContent = seq[i];
+            el.classList.remove("show");
+            void el.offsetWidth; // restart the pop animation
+            el.classList.add("show");
+            Sound.countTick(i); // rising pitch 0,1,2
+            i++;
+            setTimeout(tick, 620);
+          };
+          tick();
+        });
+      }
+
       function draw() {
         if (state.phase !== "idle" || !state.pool.length) return;
         state.phase = "spinning";
@@ -3138,8 +3216,7 @@
         const winner = weightedPick();
         state.pending = winner;
 
-        const wait = reduced() ? 500 : 4200;
-        setTimeout(() => {
+        const finish = () => {
           reToss.forEach(clearTimeout);
           M3.churnTarget = IDLE_CHURN;
           M3.gravity = IDLE_GRAV;
@@ -3148,7 +3225,17 @@
             state.phase = "revealing";
             setTimeout(() => reveal(winner), reduced() ? 150 : 340);
           });
-        }, wait);
+        };
+
+        if (reduced()) {
+          setTimeout(finish, 500);
+          return;
+        }
+        // shuffle, then a suspense countdown (balls keep churning) before the draw
+        setTimeout(() => {
+          Sound.drumroll(2);
+          showCountdown().then(finish);
+        }, 2700);
       }
       /* ---------- winner reveal ---------- */
       function avaMarkup(entrant, cls) {
@@ -3156,14 +3243,29 @@
     <img src="${stickerUrl(entrant.stickerName)}" alt="" onerror="this.parentNode.classList.add('emoji');this.parentNode.textContent='${entrant.emoji}'">
   </div>`;
       }
+      function countUp(el, target, dur) {
+        const t0 = performance.now();
+        const fmt = (n) => "$" + Math.round(n).toLocaleString("en-US");
+        const step = (now) => {
+          const k = Math.min(1, (now - t0) / dur);
+          const e = 1 - Math.pow(1 - k, 3);
+          el.textContent = fmt(target * e);
+          if (k < 1) requestAnimationFrame(step);
+          else el.textContent = fmt(target);
+        };
+        requestAnimationFrame(step);
+      }
+
       function reveal(entrant) {
         const p = PRIZES[state.prizeIndex];
+        const amount = parseInt(p.amount.replace(/[^0-9]/g, ""), 10) || 0;
         const card = $("#winCard");
         card.className = "wincard";
         card.innerHTML = `
-    <div class="ribbon"><span class="m">${p.medal}</span> ${p.amount} · ${p.place} prize</div>
+    <div class="ribbon"><span class="m">${p.medal}</span> ${p.place} prize</div>
     ${avaMarkup(entrant)}
     <div class="nm">${escapeHtml(initials(entrant.name))}</div>
+    <div class="prizebig" id="prizeBig">$0</div>
     <div class="cap">🎉 Winner! 🎉</div>
     <div class="acts">
       <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
@@ -3173,6 +3275,11 @@
         requestAnimationFrame(() => card.classList.add("in"));
         Sound.win();
         confettiBurst(120);
+        // the prize amount counts up as the climax
+        setTimeout(
+          () => countUp($("#prizeBig"), amount, reduced() ? 1 : 1000),
+          reduced() ? 0 : 350,
+        );
         $("#redrawBtn").onclick = redraw;
         $("#nextBtn").onclick = confirmWinner;
       }
@@ -3684,6 +3791,59 @@
           o.connect(g).connect(ctx.destination);
           o.start(t);
           o.stop(t + 0.24);
+        },
+        // an accelerating, building snare-style roll for the countdown
+        drumroll(dur = 1.8) {
+          this.resume();
+          if (this.muted || !this.ctx) return;
+          const ctx = this.ctx,
+            t0 = ctx.currentTime;
+          if (!this._tumble) {
+            const b = ctx.createBuffer(
+              1,
+              Math.floor(ctx.sampleRate * 1.5),
+              ctx.sampleRate,
+            );
+            const d = b.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            this._tumble = b;
+          }
+          let t = t0,
+            gap = 0.075;
+          while (t < t0 + dur) {
+            const src = ctx.createBufferSource();
+            src.buffer = this._tumble;
+            const bp = ctx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.value = 1900;
+            bp.Q.value = 0.8;
+            const g = ctx.createGain();
+            const amp = 0.03 + ((t - t0) / dur) * 0.1; // build louder
+            g.gain.setValueAtTime(amp, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+            src.connect(bp).connect(g).connect(ctx.destination);
+            src.start(t, Math.random());
+            src.stop(t + 0.07);
+            gap = Math.max(0.028, gap * 0.97); // accelerate
+            t += gap;
+          }
+        },
+        // a rising beep per count (i = 0,1,2)
+        countTick(i) {
+          this.resume();
+          if (this.muted || !this.ctx) return;
+          const ctx = this.ctx,
+            t = ctx.currentTime;
+          const o = ctx.createOscillator(),
+            g = ctx.createGain();
+          o.type = "triangle";
+          o.frequency.value = [440, 554, 659][Math.min(i, 2)];
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          o.connect(g).connect(ctx.destination);
+          o.start(t);
+          o.stop(t + 0.32);
         },
         win() {
           if (this.muted) {
