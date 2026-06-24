@@ -1006,19 +1006,6 @@
       .wincard.in .cap {
         animation: rise 0.45s ease 0.5s forwards;
       }
-      .wincard .prizebig {
-        font-family: "Fredoka", sans-serif;
-        font-weight: 700;
-        font-size: clamp(44px, 8vw, 96px);
-        line-height: 1.02;
-        color: var(--green-400);
-        margin: 6px 0 2px;
-        text-shadow: 0 6px 18px rgba(20, 153, 98, 0.22);
-        opacity: 0;
-      }
-      .wincard.in .prizebig {
-        animation: rise 0.45s ease 0.46s forwards;
-      }
       .wincard .subemail {
         font-weight: 700;
         color: var(--muted);
@@ -2060,7 +2047,6 @@
         "diamond1",
         "snowflake1",
         "thumb_up",
-        "thumb_down",
         "face_green",
         "face_light_green",
         "face_yellow",
@@ -3243,29 +3229,14 @@
     <img src="${stickerUrl(entrant.stickerName)}" alt="" onerror="this.parentNode.classList.add('emoji');this.parentNode.textContent='${entrant.emoji}'">
   </div>`;
       }
-      function countUp(el, target, dur) {
-        const t0 = performance.now();
-        const fmt = (n) => "$" + Math.round(n).toLocaleString("en-US");
-        const step = (now) => {
-          const k = Math.min(1, (now - t0) / dur);
-          const e = 1 - Math.pow(1 - k, 3);
-          el.textContent = fmt(target * e);
-          if (k < 1) requestAnimationFrame(step);
-          else el.textContent = fmt(target);
-        };
-        requestAnimationFrame(step);
-      }
-
       function reveal(entrant) {
         const p = PRIZES[state.prizeIndex];
-        const amount = parseInt(p.amount.replace(/[^0-9]/g, ""), 10) || 0;
         const card = $("#winCard");
         card.className = "wincard";
         card.innerHTML = `
-    <div class="ribbon"><span class="m">${p.medal}</span> ${p.place} prize</div>
+    <div class="ribbon"><span class="m">${p.medal}</span> ${p.amount} · ${p.place} prize</div>
     ${avaMarkup(entrant)}
     <div class="nm">${escapeHtml(initials(entrant.name))}</div>
-    <div class="prizebig" id="prizeBig">$0</div>
     <div class="cap">🎉 Winner! 🎉</div>
     <div class="acts">
       <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
@@ -3275,11 +3246,6 @@
         requestAnimationFrame(() => card.classList.add("in"));
         Sound.win();
         confettiBurst(120);
-        // the prize amount counts up as the climax
-        setTimeout(
-          () => countUp($("#prizeBig"), amount, reduced() ? 1 : 1000),
-          reduced() ? 0 : 350,
-        );
         $("#redrawBtn").onclick = redraw;
         $("#nextBtn").onclick = confirmWinner;
       }
