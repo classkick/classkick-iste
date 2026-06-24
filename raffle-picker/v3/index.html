@@ -1955,8 +1955,7 @@
       }
       .fx-streamer .rib {
         display: block;
-        height: clamp(7px, 0.9vh, 12px);
-        border-radius: 999px;
+        overflow: visible;
         transform-origin: center;
         animation: ribFlutter var(--fdur) ease-in-out infinite;
       }
@@ -1988,10 +1987,10 @@
       @keyframes ribFlutter {
         0%,
         100% {
-          transform: skewX(-22deg) scaleY(0.5) rotate(-6deg);
+          transform: skewX(-15deg) scaleY(0.72) rotate(-4deg);
         }
         50% {
-          transform: skewX(22deg) scaleY(1.15) rotate(6deg);
+          transform: skewX(15deg) scaleY(1.12) rotate(4deg);
         }
       }
       @keyframes bnrWave {
@@ -4647,23 +4646,53 @@
         };
       }
 
+      const SVG_NS = "http://www.w3.org/2000/svg";
+
       function fxStreamer(layer, W, H) {
         const g = fxGeom(W, H);
         const c1 =
           STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
-        const c2 =
+        let c2 =
           STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
+        if (c2 === c1)
+          c2 =
+            STREAMER_COLORS[
+              (STREAMER_COLORS.indexOf(c1) + 3) % STREAMER_COLORS.length
+            ];
         const el = document.createElement("div");
         el.className = "fx-streamer";
         el.style.left = g.startX + "px";
         el.style.top = g.startY + "px";
-        const rib = document.createElement("div");
-        rib.className = "rib";
-        rib.style.width = fxRand(7, 16) + "vw";
-        rib.style.background = `repeating-linear-gradient(90deg, ${c1} 0 16px, ${c2} 16px 32px)`;
-        rib.style.setProperty("--fdur", fxRand(0.34, 0.6).toFixed(2) + "s");
-        rib.style.animationDelay = -fxRand(0, 0.6).toFixed(2) + "s";
-        el.appendChild(rib);
+
+        // curly paper streamer: an S-curve so it is bent, not a straight rod
+        const len = (fxRand(7, 16) * (window.innerWidth || W)) / 100;
+        const th = fxRand(7, 11);
+        const bend = fxRand(11, 26) * (Math.random() < 0.5 ? -1 : 1);
+        const hgt = (th + Math.abs(bend)) * 2 + 6;
+        const cy = hgt / 2;
+        const d = `M 0 ${cy.toFixed(1)} Q ${(len * 0.3).toFixed(1)} ${(cy + bend).toFixed(1)}, ${(len * 0.55).toFixed(1)} ${cy.toFixed(1)} T ${len.toFixed(1)} ${(cy + bend * 0.45).toFixed(1)}`;
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("class", "rib");
+        svg.setAttribute("width", len.toFixed(1));
+        svg.setAttribute("height", hgt.toFixed(1));
+        svg.setAttribute("viewBox", `0 0 ${len.toFixed(1)} ${hgt.toFixed(1)}`);
+        const base = document.createElementNS(SVG_NS, "path");
+        base.setAttribute("d", d);
+        base.setAttribute("fill", "none");
+        base.style.stroke = c1; // inline style so var(--brand) resolves
+        base.setAttribute("stroke-width", th.toFixed(1));
+        base.setAttribute("stroke-linecap", "round");
+        const seg = document.createElementNS(SVG_NS, "path");
+        seg.setAttribute("d", d);
+        seg.setAttribute("fill", "none");
+        seg.style.stroke = c2;
+        seg.setAttribute("stroke-width", th.toFixed(1));
+        seg.setAttribute("stroke-dasharray", "16 16");
+        svg.appendChild(base);
+        svg.appendChild(seg);
+        svg.style.setProperty("--fdur", fxRand(0.34, 0.6).toFixed(2) + "s");
+        svg.style.animationDelay = -fxRand(0, 0.6).toFixed(2) + "s";
+        el.appendChild(svg);
         fxVars(el, {
           ...fxPath(g.dx, g.dy, fxRand(0.05, 0.11), W, H),
           rot: (Math.atan2(g.dy, g.dx) * 180) / Math.PI + "deg",
