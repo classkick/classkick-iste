@@ -2655,23 +2655,38 @@
         return new THREE.CanvasTexture(c);
       }
 
-      // warm wood grain (concentric rings) for the podium
+      // warm wood with straight plank grain for the stage deck
       function makeWood() {
         const c = document.createElement("canvas");
         c.width = c.height = 512;
         const x = c.getContext("2d");
-        const base = x.createRadialGradient(256, 256, 20, 256, 256, 360);
-        base.addColorStop(0, "#b07b46");
-        base.addColorStop(1, "#8a5a30");
-        x.fillStyle = base;
+        x.fillStyle = "#9c6a3c";
         x.fillRect(0, 0, 512, 512);
-        for (let r = 8; r < 400; r += 5 + Math.random() * 9) {
-          x.beginPath();
-          x.arc(256, 256, r, 0, Math.PI * 2);
-          x.lineWidth = 1 + Math.random() * 2.5;
-          const d = 0.35 + Math.random() * 0.3;
-          x.strokeStyle = `rgba(74,46,22,${d})`;
-          x.stroke();
+        const planks = 6,
+          ph = 512 / planks;
+        for (let i = 0; i < planks; i++) {
+          const y0 = i * ph;
+          const tone = 150 + Math.random() * 38;
+          x.fillStyle = `rgb(${tone | 0},${(tone * 0.66) | 0},${(tone * 0.38) | 0})`;
+          x.fillRect(0, y0, 512, ph);
+          for (let g = 0; g < 16; g++) {
+            const gy = y0 + Math.random() * ph;
+            x.beginPath();
+            x.moveTo(0, gy);
+            x.bezierCurveTo(
+              170,
+              gy + (Math.random() * 8 - 4),
+              340,
+              gy + (Math.random() * 8 - 4),
+              512,
+              gy + (Math.random() * 6 - 3),
+            );
+            x.lineWidth = 0.6 + Math.random() * 1.4;
+            x.strokeStyle = `rgba(74,46,22,${0.16 + Math.random() * 0.22})`;
+            x.stroke();
+          }
+          x.fillStyle = "rgba(48,28,12,0.55)"; // seam between planks
+          x.fillRect(0, y0, 512, 2);
         }
         const tex = new THREE.CanvasTexture(c);
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -2777,32 +2792,30 @@
         base.position.y = -DOME_R - 0.72;
         scene.add(base);
 
-        // stage platform: a warm wooden podium so the machine reads as standing
-        // on a stage, with good contrast against the green base and the metal
-        const woodTex = makeWood();
-        const stage = new THREE.Mesh(
-          new THREE.CylinderGeometry(3.9, 4.3, 0.55, 64),
-          new THREE.MeshStandardMaterial({
-            map: woodTex,
-            roughness: 0.5,
-            metalness: 0.0,
-            envMapIntensity: 0.5,
-          }),
-        );
-        stage.position.set(0, -3.9 - 0.28, 0.7); // top at y = -3.9
+        // stage: a rectangular wooden deck (plank grain on top, darker wood
+        // edges) so the machine reads as standing on a real stage
+        const woodTop = new THREE.MeshStandardMaterial({
+          map: makeWood(),
+          roughness: 0.55,
+          metalness: 0.0,
+          envMapIntensity: 0.45,
+        });
+        const woodEdge = new THREE.MeshStandardMaterial({
+          color: 0x6b4423,
+          roughness: 0.6,
+          metalness: 0.0,
+          envMapIntensity: 0.3,
+        });
+        const stage = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.55, 5.2), [
+          woodEdge,
+          woodEdge,
+          woodTop,
+          woodEdge,
+          woodEdge,
+          woodEdge,
+        ]);
+        stage.position.set(0, -4.175, 0.7); // top at y = -3.9
         scene.add(stage);
-        // a darker wood trim around the podium edge
-        const stageRim = new THREE.Mesh(
-          new THREE.TorusGeometry(3.92, 0.07, 12, 80),
-          new THREE.MeshStandardMaterial({
-            color: 0x5e3c1d,
-            roughness: 0.55,
-            metalness: 0.0,
-          }),
-        );
-        stageRim.rotation.x = -Math.PI / 2;
-        stageRim.position.set(0, -3.9, 0.7);
-        scene.add(stageRim);
         // soft reflection pool on the stage under the dome
         const stageGlow = new THREE.Mesh(
           new THREE.CircleGeometry(2.6, 48),
