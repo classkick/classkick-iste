@@ -1951,7 +1951,7 @@
       }
       /* outer element travels along a serpentine path; inner flutters in the air */
       .fx-streamer {
-        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+        animation: fxFly var(--dur) linear forwards;
       }
       .fx-streamer .rib {
         display: block;
@@ -1961,7 +1961,7 @@
         animation: ribFlutter var(--fdur) ease-in-out infinite;
       }
       .fx-banner {
-        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+        animation: fxFly var(--dur) linear forwards;
       }
       .fx-banner .bnr {
         display: inline-flex;
@@ -2026,21 +2026,24 @@
       @keyframes fxFly {
         0% {
           opacity: 0;
-          transform: translate(0, 0) rotate(var(--rot)) scale(0.9);
+          transform: translate(0, 0) rotate(var(--rot)) scale(0.92);
         }
-        12% {
+        8% {
           opacity: var(--op);
         }
-        25% {
+        20% {
           transform: translate(var(--x1), var(--y1)) rotate(var(--rot)) scale(1);
         }
-        50% {
+        40% {
           transform: translate(var(--x2), var(--y2)) rotate(var(--rot)) scale(1);
         }
-        75% {
+        60% {
           transform: translate(var(--x3), var(--y3)) rotate(var(--rot)) scale(1);
         }
-        88% {
+        80% {
+          transform: translate(var(--x4), var(--y4)) rotate(var(--rot)) scale(1);
+        }
+        92% {
           opacity: var(--op);
         }
         100% {
@@ -4596,44 +4599,56 @@
         layer.appendChild(el);
       }
 
-      // start point + travel vector for an element entering from a lower corner
-      function fxGeom(side, W, H) {
-        const startX =
-          side < 0 ? fxRand(-0.06, 0.08) * W : fxRand(0.92, 1.06) * W;
-        const startY = fxRand(0.78, 1.04) * H;
-        const dx = -side * fxRand(0.78, 1.08) * W; // left emitter flies right, vice versa
-        const dy = -fxRand(0.85, 1.15) * H;
-        return { startX, startY, dx, dy };
+      // enter from a random point just outside one edge and fly to a different
+      // edge, so the burst comes from all around rather than only the corners
+      function fxGeom(W, H) {
+        const m = 0.12; // start/exit margin outside the stage
+        const onEdge = (edge) => {
+          if (edge === 0) return { x: -m * W, y: fxRand(-0.05, 1.05) * H }; // left
+          if (edge === 1) return { x: (1 + m) * W, y: fxRand(-0.05, 1.05) * H }; // right
+          if (edge === 2) return { x: fxRand(-0.05, 1.05) * W, y: -m * H }; // top
+          return { x: fxRand(-0.05, 1.05) * W, y: (1 + m) * H }; // bottom
+        };
+        const a = Math.floor(Math.random() * 4);
+        let b = Math.floor(Math.random() * 4);
+        if (b === a) b = (b + 1 + Math.floor(Math.random() * 3)) % 4;
+        const s = onEdge(a),
+          e = onEdge(b);
+        return { startX: s.x, startY: s.y, dx: e.x - s.x, dy: e.y - s.y };
       }
 
-      // serpentine waypoints: weave perpendicular to the travel direction so the
-      // element wiggles through the air instead of flying in a straight line
+      // smooth sine weave perpendicular to the travel direction, sampled at even
+      // fractions so the element glides continuously (no decelerate-at-each-point)
       function fxPath(dx, dy, ampFrac, W, H) {
         const len = Math.hypot(dx, dy) || 1;
         const px = -dy / len,
           py = dx / len; // unit perpendicular
         const amp = ampFrac * Math.min(W, H);
-        const wp = (f, sign) => ({
-          x: dx * f + px * amp * sign,
-          y: dy * f + py * amp * sign,
-        });
-        const p1 = wp(0.25, 1),
-          p2 = wp(0.5, -1),
-          p3 = wp(0.75, 1);
+        const waves = fxRand(1.5, 2.3);
+        const at = (f) => {
+          const o = amp * Math.sin(f * Math.PI * waves);
+          return { x: dx * f + px * o, y: dy * f + py * o };
+        };
+        const a = at(0.2),
+          b = at(0.4),
+          c = at(0.6),
+          d = at(0.8);
         return {
           dx,
           dy,
-          x1: p1.x,
-          y1: p1.y,
-          x2: p2.x,
-          y2: p2.y,
-          x3: p3.x,
-          y3: p3.y,
+          x1: a.x,
+          y1: a.y,
+          x2: b.x,
+          y2: b.y,
+          x3: c.x,
+          y3: c.y,
+          x4: d.x,
+          y4: d.y,
         };
       }
 
-      function fxStreamer(layer, side, W, H) {
-        const g = fxGeom(side, W, H);
+      function fxStreamer(layer, W, H) {
+        const g = fxGeom(W, H);
         const c1 =
           STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
         const c2 =
@@ -4657,8 +4672,8 @@
         fxAdd(layer, el, fxRand(2400, 3300));
       }
 
-      function fxBanner(layer, side, text, idx, W, H) {
-        const g = fxGeom(side, W, H);
+      function fxBanner(layer, text, idx, W, H) {
+        const g = fxGeom(W, H);
         const el = document.createElement("div");
         el.className = "fx-banner";
         el.style.left = g.startX + "px";
@@ -4671,8 +4686,8 @@
         bnr.style.animationDelay = -fxRand(0, 1).toFixed(2) + "s";
         el.appendChild(bnr);
         fxVars(el, {
-          ...fxPath(g.dx, g.dy * 0.92, fxRand(0.025, 0.05), W, H),
-          rot: (side < 0 ? fxRand(-25, -18) : fxRand(18, 25)) + "deg",
+          ...fxPath(g.dx, g.dy, fxRand(0.025, 0.05), W, H),
+          rot: fxRand(-22, 22) + "deg", // gentle tilt, kept readable
           op: fxRand(0.92, 1),
         });
         fxAdd(layer, el, fxRand(2800, 3600));
@@ -4710,7 +4725,7 @@
         const H = layer.clientHeight || window.innerHeight;
         const t = Math.max(0, Math.min(2, tier));
         const ticketN = [7, 10, 14][t];
-        const streamerN = [4, 6, 9][t]; // per side
+        const streamerN = [8, 12, 18][t];
         const bannerN = [2, 3, 5][t];
         const WINDOW = 3600; // spawn spread; everything clears before the reveal
 
@@ -4719,23 +4734,17 @@
             setTimeout(() => fxTicket(layer, W, H), fxRand(0, WINDOW)),
           );
         }
-        [-1, 1].forEach((side) => {
-          for (let i = 0; i < streamerN; i++) {
-            fxTimers.push(
-              setTimeout(
-                () => fxStreamer(layer, side, W, H),
-                fxRand(0, WINDOW),
-              ),
-            );
-          }
-        });
+        for (let i = 0; i < streamerN; i++) {
+          fxTimers.push(
+            setTimeout(() => fxStreamer(layer, W, H), fxRand(0, WINDOW)),
+          );
+        }
         fxShuffle(PHRASES.slice())
           .slice(0, bannerN)
           .forEach((text, i) => {
-            const side = i % 2 === 0 ? -1 : 1;
             fxTimers.push(
               setTimeout(
-                () => fxBanner(layer, side, text, i, W, H),
+                () => fxBanner(layer, text, i, W, H),
                 fxRand(200, WINDOW - 400),
               ),
             );
