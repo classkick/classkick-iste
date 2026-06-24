@@ -1,0 +1,3475 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grand Prize Raffle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --canvas: #fbfdf8;
+        --card: #ffffff;
+        --green-100: #d3f3e6;
+        --green-200: #78dbb2;
+        --green-300: #25c582;
+        --green-350: #12a568;
+        --green-400: #149962;
+        --green-500: #047857;
+        --lime: #88c043;
+        --yellow: #ffdf78;
+        --ink: #2c3438;
+        --muted: #6d6e70;
+        --coral: #ff6b6b;
+        --orange: #e86826;
+        --azure: #3498fe;
+        --pastel-blue: #82c3fb;
+        --violet: #723dff;
+        --purple: #b568a9;
+        --cyan: #2dcdf8;
+        --border: #e5e5e5;
+        --divider: #eef0ee;
+        --shadow-card: 0 0 8px 1px rgba(64, 67, 69, 0.13);
+        --shadow-lift: 0 12px 26px rgba(64, 67, 69, 0.16);
+        --gold: #f5b521;
+        --silver: #aab3bd;
+        --bronze: #cd8a4f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: "Manrope", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(900px 520px at 4% -10%, #e3f6e9 0%, transparent 56%),
+          radial-gradient(820px 560px at 100% -8%, #fbf3c9 0%, transparent 52%),
+          radial-gradient(700px 700px at 50% 130%, #e9f1fb 0%, transparent 60%),
+          var(--canvas);
+        background-attachment: fixed;
+        min-height: 100%;
+        overflow: hidden;
+      }
+      button {
+        font-family: inherit;
+      }
+
+      /* audience view: fills exactly one screen (operator controls sit below) */
+      .app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: clamp(10px, 1.8vh, 22px) clamp(14px, 3vw, 40px) 0;
+        position: relative;
+      }
+      /* subtle gear that summons the controls overlay */
+      .gear {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 81;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-card);
+        font-size: 20px;
+        color: var(--green-500);
+        opacity: 0.4;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+      }
+      .gear:hover {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+      .gear:focus-visible {
+        opacity: 1;
+        outline: 3px solid var(--green-200);
+        outline-offset: 2px;
+      }
+      /* operator controls: hidden overlay, slides up from the bottom */
+      .controls {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 80;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 14px clamp(14px, 3vw, 40px) 18px;
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--divider);
+        box-shadow: 0 -10px 30px rgba(64, 67, 69, 0.16);
+        transform: translateY(115%);
+        transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+      }
+      .controls.open {
+        transform: translateY(0);
+      }
+      .controls-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 920px;
+        font-family: "Fredoka", sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+      .controls-title .ctrl-hint {
+        font-family: "Manrope", sans-serif;
+        font-weight: 700;
+        font-size: 12.5px;
+        color: var(--orange);
+      }
+      .ctrl-close {
+        margin-left: auto;
+        border: none;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--green-100);
+        color: var(--green-500);
+        font-weight: 800;
+        font-size: 13px;
+      }
+      .ctrl-close:hover {
+        background: var(--green-200);
+      }
+
+      /* faint brand scribble top-right */
+      .corner-scrib {
+        position: absolute;
+        top: 6px;
+        right: 18px;
+        width: 150px;
+        height: 60px;
+        opacity: 0.45;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .corner-scrib path {
+        fill: none;
+        stroke: var(--green-200);
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+      @media (max-width: 720px) {
+        .corner-scrib {
+          display: none;
+        }
+      }
+
+      /* ---------- Header ---------- */
+      .head {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-direction: column;
+        text-align: center;
+        flex: none;
+        z-index: 2;
+      }
+      .brand {
+        line-height: 0;
+        margin-bottom: 0;
+      }
+      .brand img {
+        height: 22px;
+        width: auto;
+        display: block;
+      }
+      .brand .wordmark {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--green-400);
+        letter-spacing: -0.5px;
+      }
+      .title {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(30px, 4.6vw, 56px);
+        line-height: 1.02;
+        letter-spacing: -1px;
+        margin: 0;
+        background: linear-gradient(96deg, var(--green-350), var(--lime));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .title .spark {
+        display: inline-block;
+        -webkit-text-fill-color: initial;
+        color: initial;
+        animation: bob 2.6s ease-in-out infinite;
+      }
+      .subtitle {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 4px 0 0;
+        color: var(--green-500);
+        background: var(--green-100);
+        font-weight: 800;
+        font-size: clamp(11px, 1.3vw, 14px);
+        letter-spacing: 0.1px;
+        padding: 5px 14px;
+        border-radius: 999px;
+      }
+
+      /* ---------- Prize rail (vertical, beside the wheel) ---------- */
+      .rail {
+        position: absolute;
+        left: clamp(8px, 1.8vw, 36px);
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: clamp(12px, 2.2vh, 22px);
+        width: clamp(186px, 17vw, 248px);
+        z-index: 4;
+      }
+      .prize {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        background: var(--card);
+        border: 2px solid var(--divider);
+        border-radius: 18px;
+        padding: 14px 18px 14px 16px;
+        box-shadow: var(--shadow-card);
+        width: 100%;
+        transition:
+          transform 0.25s,
+          border-color 0.25s,
+          box-shadow 0.25s,
+          opacity 0.25s;
+        opacity: 0.6;
+      }
+      .prize .medal {
+        font-size: 38px;
+        line-height: 1;
+        filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.14));
+      }
+      .prize .amt {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(26px, 2.6vw, 36px);
+        color: var(--ink);
+        line-height: 1;
+      }
+      .prize .plc {
+        font-weight: 800;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .prize .who {
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--green-500);
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .prize.active .amt {
+        color: var(--green-500);
+      }
+      .prize.active {
+        opacity: 1;
+        border-color: var(--green-300);
+        transform: translateY(-3px) scale(1.04);
+        box-shadow: 0 14px 30px rgba(20, 153, 98, 0.26);
+      }
+      .prize.active::after {
+        content: "DRAWING NOW";
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--green-300);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        white-space: nowrap;
+        box-shadow: var(--shadow-lift);
+      }
+      .prize.done {
+        opacity: 1;
+        border-color: var(--green-200);
+        background: linear-gradient(180deg, #fff, #f5fbf7);
+      }
+      .prize.done .check {
+        position: absolute;
+        top: -9px;
+        right: -7px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--green-300);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        box-shadow: var(--shadow-lift);
+      }
+
+      /* ---------- Wheel stage ---------- */
+      .stage {
+        flex: 1;
+        display: grid;
+        place-items: center;
+        position: relative;
+        min-height: 0;
+        margin-top: clamp(6px, 1.4vh, 16px);
+        z-index: 1;
+      }
+      /* ===== lotto ball machine (v2 mechanism) ===== */
+      .machine {
+        position: relative;
+        width: min(54vh, 42vw);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .dome {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+        z-index: 2;
+      }
+      /* brand conic halo behind the glass, same family as v1's wheel */
+      .dome::before {
+        content: "";
+        position: absolute;
+        inset: -3%;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 0deg,
+          var(--green-300),
+          var(--yellow),
+          var(--azure),
+          var(--violet),
+          var(--coral),
+          var(--green-300)
+        );
+        filter: blur(3px);
+        opacity: 0.85;
+        z-index: 0;
+      }
+      .glass {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        background: radial-gradient(
+          circle at 50% 42%,
+          #ffffff 0%,
+          #f3faf6 60%,
+          #e7f3ec 100%
+        );
+        box-shadow:
+          var(--shadow-lift),
+          inset 0 0 0 10px #fff,
+          inset 0 0 60px rgba(20, 153, 98, 0.1);
+        z-index: 1;
+      }
+      .glass canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      /* curved glass reflections over the chamber */
+      .dome-glint {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 3;
+        background:
+          radial-gradient(
+            40% 26% at 32% 18%,
+            rgba(255, 255, 255, 0.85),
+            transparent 70%
+          ),
+          radial-gradient(
+            18% 12% at 74% 30%,
+            rgba(255, 255, 255, 0.55),
+            transparent 70%
+          );
+      }
+      /* exit hatch at the bottom of the dome where the ball drops out */
+      .hatch {
+        position: absolute;
+        bottom: -1px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 22%;
+        height: 9%;
+        background: linear-gradient(#0c5b3b, #08402a);
+        border-radius: 0 0 40% 40% / 0 0 100% 100%;
+        box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.4);
+        z-index: 4;
+      }
+      /* funnel neck from dome into the base */
+      .neck {
+        position: relative;
+        width: 30%;
+        height: clamp(14px, 2.4vh, 26px);
+        margin-top: -2px;
+        background: linear-gradient(#149962, #0c5b3b);
+        clip-path: polygon(18% 0, 82% 0, 66% 100%, 34% 100%);
+        z-index: 1;
+      }
+      .base {
+        position: relative;
+        width: 78%;
+        height: clamp(46px, 9vh, 92px);
+        margin-top: -2px;
+        background: linear-gradient(
+          #1eb877,
+          var(--green-400) 55%,
+          var(--green-500)
+        );
+        clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+        border-radius: 6px 6px 14px 14px;
+        box-shadow:
+          var(--shadow-lift),
+          inset 0 3px 0 rgba(255, 255, 255, 0.25);
+        display: grid;
+        place-items: center;
+        z-index: 1;
+      }
+      .base-badge {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: #fff;
+        font-size: clamp(11px, 1.5vw, 18px);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        opacity: 0.96;
+      }
+      /* catch tray where the winning ball comes to rest */
+      .tray {
+        position: relative;
+        width: 46%;
+        height: clamp(20px, 3.4vh, 38px);
+        margin-top: 6px;
+        background: linear-gradient(#fff, #eef4f0);
+        border: 2px solid var(--green-200);
+        border-radius: 0 0 999px 999px / 0 0 60px 60px;
+        box-shadow:
+          var(--shadow-card),
+          inset 0 6px 10px rgba(20, 153, 98, 0.1);
+        z-index: 1;
+      }
+      .tray-cradle {
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        transform: translateX(-50%);
+        width: 40%;
+        height: 10px;
+        background: radial-gradient(
+          closest-side,
+          rgba(20, 153, 98, 0.18),
+          transparent
+        );
+        border-radius: 50%;
+      }
+
+      /* side lever — a handle bolted to the dome's rim that you pull DOWN */
+      .lever {
+        position: absolute;
+        left: 100%;
+        top: 39%; /* dome's vertical centre, so the hub sits on the rim */
+        transform: translateY(-50%);
+        width: clamp(120px, 20vw, 220px);
+        height: clamp(90px, 16vh, 160px);
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        z-index: 6;
+      }
+      /* hub bolted onto the dome's right rim — the visible attachment point */
+      .lever-hub {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: clamp(42px, 6.4vw, 70px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 38% 32%,
+          #1eb877,
+          var(--green-400) 60%,
+          var(--green-500)
+        );
+        border: 5px solid #fff;
+        box-shadow:
+          var(--shadow-lift),
+          inset 0 -3px 6px rgba(0, 0, 0, 0.2);
+      }
+      .lever-hub::after {
+        content: "";
+        position: absolute;
+        inset: 30%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #eef1f3, #9aa3ab);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+      }
+      /* the swing arm pivots at the hub and points out to the right */
+      .lever-arm {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 80%;
+        height: clamp(11px, 1.5vw, 15px);
+        transform-origin: 0 50%;
+        transform: translateY(-50%) rotate(-50deg); /* idle: up-and-out */
+        transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+      .lever-rod {
+        height: 100%;
+        flex: 1;
+        background: linear-gradient(#eef1f3, #aeb6bd);
+        border-radius: 999px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .lever-knob {
+        position: relative;
+        z-index: 1;
+        width: clamp(42px, 6.4vw, 72px);
+        height: clamp(42px, 6.4vw, 72px);
+        margin-left: -6px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 36% 30%,
+          #ff9b8a,
+          var(--coral) 60%,
+          #e0483a
+        );
+        border: 4px solid #fff;
+        box-shadow:
+          0 8px 16px rgba(224, 72, 58, 0.45),
+          inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+        display: grid;
+        place-items: center;
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(10px, 1.4vw, 14px);
+        letter-spacing: 0.06em;
+        color: #fff;
+      }
+      .lever.idle .lever-knob {
+        animation: leverpulse 1.8s ease-in-out infinite;
+      }
+      .lever:hover .lever-arm {
+        transform: translateY(-50%) rotate(-40deg);
+      }
+      .lever.pull .lever-arm {
+        transform: translateY(-50%) rotate(22deg); /* swung DOWN */
+        transition: transform 0.16s cubic-bezier(0.5, 0, 0.6, 1);
+      }
+      .lever:disabled {
+        cursor: default;
+      }
+      .lever:disabled .lever-knob {
+        filter: saturate(0.5) brightness(0.98);
+        animation: none;
+      }
+
+      /* the ball that rolls out, carrying the winner's sticker + initials */
+      .outball {
+        position: absolute;
+        z-index: 7;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+      }
+      .ob-face {
+        width: clamp(64px, 11vh, 116px);
+        height: clamp(64px, 11vh, 116px);
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 36% 30%,
+          #ffffff,
+          #eaf6ef 58%,
+          #d6ebe0
+        );
+        border: 4px solid #fff;
+        box-shadow:
+          var(--shadow-lift),
+          inset 0 -6px 12px rgba(20, 153, 98, 0.16);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+      .ob-face img {
+        width: 78%;
+        height: 78%;
+        object-fit: contain;
+      }
+      .ob-face.emoji::after {
+        content: attr(data-e);
+        font-size: clamp(30px, 6vh, 60px);
+      }
+      .ob-nm {
+        margin-top: 6px;
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(15px, 2.4vw, 26px);
+        letter-spacing: 0.1em;
+        color: var(--green-500);
+        background: #fff;
+        border: 2px solid var(--green-200);
+        border-radius: 999px;
+        padding: 2px 14px;
+        box-shadow: var(--shadow-card);
+        opacity: 0;
+      }
+      .outball.roll .ob-face {
+        animation: ballspin 1.05s cubic-bezier(0.4, 0.05, 0.4, 1) forwards;
+      }
+      .outball.roll .ob-nm {
+        animation: fadein 0.4s ease 0.9s forwards;
+      }
+      @keyframes ballspin {
+        to {
+          transform: rotate(540deg);
+        }
+      }
+      @keyframes leverpulse {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow:
+            0 8px 16px rgba(224, 72, 58, 0.45),
+            inset 0 -4px 8px rgba(0, 0, 0, 0.2),
+            0 0 0 0 rgba(255, 107, 107, 0.5);
+        }
+        70% {
+          transform: scale(1.06);
+          box-shadow:
+            0 8px 16px rgba(224, 72, 58, 0.45),
+            inset 0 -4px 8px rgba(0, 0, 0, 0.2),
+            0 0 0 14px rgba(255, 107, 107, 0);
+        }
+      }
+
+      /* ---------- Status ---------- */
+      .status {
+        flex: none;
+        text-align: center;
+        margin: clamp(6px, 1.4vh, 14px) 0 0;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 13.5px;
+        z-index: 2;
+        min-height: 20px;
+      }
+      .status .live {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--green-300);
+        box-shadow: 0 0 0 0 rgba(37, 197, 130, 0.55);
+        animation: pulse 1.8s infinite;
+      }
+      .status .warn {
+        color: var(--orange);
+      }
+
+      /* ---------- Bottom bar ---------- */
+      .bar {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        max-width: 900px;
+        z-index: 3;
+      }
+      .tool {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        border: none;
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 9px 15px;
+        color: var(--green-500);
+        background: #fff;
+        box-shadow: var(--shadow-card);
+        border: 1.5px solid var(--divider);
+        transition:
+          transform 0.14s,
+          background 0.14s,
+          color 0.14s;
+      }
+      .tool:hover {
+        transform: translateY(-2px);
+        background: var(--green-100);
+      }
+      .tool:active {
+        transform: translateY(0);
+      }
+      .tool:focus-visible {
+        outline: 3px solid var(--green-200);
+        outline-offset: 2px;
+      }
+      .tool.primary {
+        background: var(--green-300);
+        color: #fff;
+        border-color: transparent;
+      }
+      .tool.primary:hover {
+        background: var(--green-400);
+      }
+      .tool .ic {
+        font-size: 14px;
+      }
+      /* prize chips (replaces the native "Drawing" dropdown) */
+      .chips {
+        display: inline-flex;
+        gap: 4px;
+        margin-left: 2px;
+      }
+      .chip {
+        font-family: inherit;
+        font-weight: 800;
+        font-size: 12px;
+        border: 1.5px solid var(--border);
+        background: #fff;
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 3px 10px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .chip:hover:not(:disabled) {
+        border-color: var(--green-300);
+        color: var(--green-500);
+      }
+      .chip.on {
+        background: var(--green-300);
+        color: #fff;
+        border-color: transparent;
+      }
+      .chip.done {
+        background: var(--green-100);
+        color: var(--green-500);
+        border-color: var(--green-200);
+      }
+      .chip.done:hover {
+        border-color: var(--coral);
+        color: var(--coral);
+      }
+      .chip:focus-visible {
+        outline: 3px solid var(--green-200);
+        outline-offset: 2px;
+      }
+
+      /* ---------- Settings panel ---------- */
+      .panel {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, calc(-50% + 16px));
+        width: min(620px, 94vw);
+        background: var(--card);
+        border-radius: 20px;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
+        border: 1px solid var(--divider);
+        padding: 22px 24px;
+        z-index: 95;
+        display: none;
+        opacity: 0;
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
+      }
+      .panel.open {
+        display: block;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+      .panel h2 {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: 19px;
+        margin: 0 0 3px;
+      }
+      .panel p {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .panel p b {
+        color: var(--green-400);
+      }
+      .field {
+        display: block;
+        margin-bottom: 13px;
+      }
+      .field label {
+        display: block;
+        font-weight: 800;
+        font-size: 12px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--ink);
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        font-family: inherit;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: var(--ink);
+        border: 2px solid var(--border);
+        border-radius: 11px;
+        padding: 10px 13px;
+        background: #fcfdfc;
+        transition: border-color 0.15s;
+      }
+      .field input:focus,
+      .field select:focus {
+        outline: none;
+        border-color: var(--green-300);
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 11px;
+      }
+      @media (max-width: 520px) {
+        .cols {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+        margin-top: 6px;
+      }
+
+      /* ---------- Overlays (winner card / podium / wall) ---------- */
+      .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(34, 42, 46, 0.42);
+        backdrop-filter: blur(9px) saturate(1.1);
+        -webkit-backdrop-filter: blur(9px) saturate(1.1);
+      }
+      .scrim.show {
+        display: flex;
+        animation: fadein 0.3s ease;
+      }
+
+      /* winner card */
+      .wincard {
+        position: relative;
+        width: min(600px, 94vw);
+        background: var(--card);
+        border-radius: 36px;
+        padding: 44px 44px 36px;
+        text-align: center;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
+        border: 1px solid #fff;
+        transform: scale(0.7);
+        opacity: 0;
+      }
+      .wincard.in {
+        animation: springin 0.62s cubic-bezier(0.18, 1.5, 0.4, 1) forwards;
+      }
+      .wincard .ribbon {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--green-100);
+        color: var(--green-500);
+        font-weight: 800;
+        font-size: clamp(16px, 2.2vw, 20px);
+        letter-spacing: 0.3px;
+        padding: 10px 22px;
+        border-radius: 999px;
+      }
+      .wincard .ribbon .m {
+        font-size: 26px;
+      }
+      .wincard .ava {
+        width: clamp(150px, 26vw, 200px);
+        height: clamp(150px, 26vw, 200px);
+        margin: 26px auto 6px;
+        border-radius: 50%;
+        border: 6px solid #fff;
+        display: grid;
+        place-items: center;
+        background: #eef7f0;
+        box-shadow: var(--shadow-lift);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .wincard .ava img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 14%;
+      }
+      .wincard .ava.emoji {
+        font-size: 100px;
+      }
+      .wincard.in .ava {
+        animation: popava 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) 0.22s forwards;
+      }
+      .wincard .nm {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(32px, 5.4vw, 52px);
+        line-height: 1.06;
+        letter-spacing: 0.12em;
+        color: var(--ink);
+        margin: 12px 6px 2px;
+        overflow-wrap: anywhere;
+        opacity: 0;
+      }
+      .wincard.in .nm {
+        animation: rise 0.45s ease 0.38s forwards;
+      }
+      .wincard .cap {
+        font-weight: 800;
+        color: var(--green-400);
+        font-size: clamp(16px, 2.2vw, 20px);
+        margin-top: 12px;
+        opacity: 0;
+      }
+      .wincard.in .cap {
+        animation: rise 0.45s ease 0.5s forwards;
+      }
+      .wincard .subemail {
+        font-weight: 700;
+        color: var(--muted);
+        font-size: clamp(13px, 1.7vw, 16px);
+        margin-top: 4px;
+        letter-spacing: 0.2px;
+        opacity: 0;
+      }
+      .wincard.in .subemail {
+        animation: rise 0.45s ease 0.46s forwards;
+      }
+      .podcard .eml {
+        font-weight: 700;
+        font-size: clamp(10px, 1.2vw, 12.5px);
+        color: var(--muted);
+        opacity: 0.95;
+        overflow-wrap: anywhere;
+      }
+      .p1 .podcard .eml {
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .wcard .meta .eml {
+        font-weight: 700;
+        font-size: 12px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      .wincard .acts {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 22px;
+        opacity: 0;
+      }
+      .wincard.in .acts {
+        animation: rise 0.45s ease 0.6s forwards;
+      }
+      .btn {
+        font-family: "Manrope", sans-serif;
+        font-weight: 800;
+        font-size: 15px;
+        border: none;
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 13px 24px;
+        transition:
+          transform 0.14s,
+          background 0.14s,
+          box-shadow 0.14s;
+      }
+      .btn:focus-visible {
+        outline: 3px solid var(--green-200);
+        outline-offset: 2px;
+      }
+      .btn-go {
+        background: var(--green-300);
+        color: #fff;
+        box-shadow: var(--shadow-lift);
+      }
+      .btn-go:hover {
+        transform: translateY(-2px);
+        background: var(--green-400);
+      }
+      .btn-ghost {
+        background: #fff;
+        color: var(--muted);
+        box-shadow: inset 0 0 0 2px var(--border);
+      }
+      .btn-ghost:hover {
+        transform: translateY(-2px);
+        color: var(--coral);
+        box-shadow: inset 0 0 0 2px var(--coral);
+      }
+
+      /* podium */
+      .podium-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 48;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 30px;
+        background:
+          radial-gradient(900px 520px at 4% -10%, #e3f6e9 0%, transparent 56%),
+          radial-gradient(820px 560px at 100% -8%, #fbf3c9 0%, transparent 52%),
+          var(--canvas);
+        overflow: hidden;
+      }
+      .podium-screen.show {
+        display: flex;
+        animation: fadein 0.35s ease;
+      }
+      .pod-glow {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .pod-glow span {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(46px);
+        opacity: 0.5;
+        animation: drift 11s ease-in-out infinite;
+      }
+      .pod-head {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+      }
+      .pod-head h1 {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(34px, 6vw, 66px);
+        margin: 0;
+        letter-spacing: -1px;
+        background: linear-gradient(96deg, var(--green-350), var(--lime));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .pod-head .conf-emoji {
+        font-size: clamp(30px, 5vw, 48px);
+        display: inline-block;
+        animation: bob 2.4s ease-in-out infinite;
+      }
+      .podium {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 1fr 1.18fr 1fr;
+        align-items: end;
+        gap: clamp(12px, 2.4vw, 26px);
+        width: min(880px, 94vw);
+      }
+      .pod {
+        position: relative;
+        opacity: 0;
+        transform: translateY(26px) scale(0.92);
+      }
+      .pod.in {
+        animation: popUp 0.65s cubic-bezier(0.22, 1.4, 0.4, 1) forwards;
+      }
+      .pod .crown {
+        position: absolute;
+        top: -26px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 34px;
+        z-index: 3;
+        filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.18));
+        /* crownBob keeps the -50% centering while bobbing (plain bob would drop it) */
+        animation: crownBob 2.6s ease-in-out infinite;
+      }
+      @keyframes crownBob {
+        0%,
+        100% {
+          transform: translate(-50%, 0);
+        }
+        50% {
+          transform: translate(-50%, -6px);
+        }
+      }
+      .podcard {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-align: center;
+        background: var(--card);
+        border: 1px solid var(--divider);
+        border-radius: 24px;
+        padding: 30px 14px 18px;
+        box-shadow: var(--shadow-card);
+      }
+      .podcard .ava {
+        width: clamp(60px, 9vw, 92px);
+        height: clamp(60px, 9vw, 92px);
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background: #eef7f0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        box-shadow: var(--shadow-lift);
+      }
+      .podcard .ava img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 13%;
+      }
+      .podcard .ava.emoji {
+        font-size: 40px;
+      }
+      .podcard .nm {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(15px, 1.9vw, 20px);
+        color: var(--ink);
+        line-height: 1.12;
+        letter-spacing: 0.1em;
+        overflow-wrap: anywhere;
+      }
+      .podcard .plc {
+        font-weight: 800;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+      }
+      .podcard .amt {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(18px, 2.5vw, 26px);
+        color: var(--green-500);
+      }
+      .p1 .podcard {
+        min-height: 230px;
+        padding: 38px 16px 22px;
+        color: #fff;
+        border-color: transparent;
+        background: linear-gradient(165deg, #34cf90, var(--green-400));
+        box-shadow: 0 18px 40px rgba(20, 153, 98, 0.4);
+      }
+      .p1 .podcard .nm,
+      .p1 .podcard .amt {
+        color: #fff;
+      }
+      .p1 .podcard .plc {
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .p1 .podcard .ava {
+        border-color: rgba(255, 255, 255, 0.92);
+      }
+      .p2 .podcard {
+        min-height: 188px;
+      }
+      .p3 .podcard {
+        min-height: 160px;
+      }
+      .pod-foot {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .collect {
+        font-weight: 800;
+        font-size: clamp(15px, 2vw, 19px);
+        color: var(--ink);
+        background: #fff;
+        border: 2px dashed var(--green-200);
+        border-radius: 16px;
+        padding: 12px 22px;
+        box-shadow: var(--shadow-card);
+      }
+      .collect .ic {
+        color: var(--green-400);
+      }
+
+      /* winners wall fullscreen */
+      .wall-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 55;
+        display: none;
+        flex-direction: column;
+        padding: clamp(20px, 4vh, 46px) clamp(18px, 5vw, 60px);
+        overflow: auto;
+        background:
+          radial-gradient(900px 520px at 4% -10%, #e3f6e9 0%, transparent 56%),
+          radial-gradient(820px 560px at 100% -8%, #fbf3c9 0%, transparent 52%),
+          var(--canvas);
+      }
+      .wall-screen.show {
+        display: flex;
+        animation: fadein 0.3s ease;
+      }
+      .wall-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .wall-top h1 {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(28px, 4.4vw, 46px);
+        margin: 0;
+        letter-spacing: -0.5px;
+        color: var(--ink);
+      }
+      .wall-top h1 .t {
+        font-size: 0.8em;
+      }
+      .wall-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .run {
+        background: var(--card);
+        border: 1px solid var(--divider);
+        border-radius: 22px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow-card);
+        margin-bottom: 18px;
+      }
+      .run-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .run .when {
+        font-weight: 800;
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .run-replay {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+      .run-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 640px) {
+        .run-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .wcard {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        background: #fbfdfb;
+        border: 1px solid var(--divider);
+        border-radius: 16px;
+        padding: 12px 14px;
+      }
+      .wcard .medal {
+        font-size: 26px;
+        flex: none;
+      }
+      .wcard .ava {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        background: #eef7f0;
+        flex: none;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        box-shadow: var(--shadow-lift);
+      }
+      .wcard .ava img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 12%;
+      }
+      .wcard .ava.emoji {
+        font-size: 22px;
+      }
+      .wcard .meta {
+        min-width: 0;
+      }
+      .wcard .meta .nm {
+        font-weight: 800;
+        font-size: 15px;
+        color: var(--ink);
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+      .wcard .meta .amt {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--green-500);
+      }
+      .wall-empty {
+        margin: auto;
+        text-align: center;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .wall-empty .big {
+        font-size: 46px;
+        animation: bob 2.6s ease-in-out infinite;
+      }
+
+      /* bottom previous-winners strip */
+      .strip {
+        position: static;
+        z-index: 30;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--divider);
+        padding: 9px 16px;
+        display: none;
+        align-items: center;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+        font-size: 12.5px;
+        font-weight: 700;
+      }
+      .strip.show {
+        display: flex;
+      }
+      .strip .lbl {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-size: 11px;
+      }
+      .strip .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        border: 1px solid var(--divider);
+        border-radius: 999px;
+        padding: 4px 11px;
+        color: var(--green-600, #0a7);
+      }
+      .strip .chip .m {
+        font-size: 14px;
+      }
+      .strip .link {
+        color: var(--green-400);
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .strip .link.danger {
+        color: var(--coral);
+      }
+
+      canvas#confetti {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 70;
+      }
+
+      /* empty / error note */
+      .note {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        z-index: 4;
+        text-align: center;
+        padding: 24px;
+      }
+      .note .inner {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 22px;
+        padding: 26px 28px;
+        box-shadow: var(--shadow-card);
+        max-width: 420px;
+      }
+      .note .big {
+        font-size: 42px;
+      }
+      .note h3 {
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        margin: 8px 0 4px;
+        font-size: 20px;
+      }
+      .note p {
+        margin: 0;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 13.5px;
+      }
+      .note.err h3 {
+        color: var(--coral);
+      }
+
+      @keyframes bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      @keyframes hubpulse {
+        0%,
+        100% {
+          box-shadow:
+            0 10px 22px rgba(20, 153, 98, 0.45),
+            inset 0 -5px 10px rgba(0, 0, 0, 0.16),
+            0 0 0 0 rgba(37, 197, 130, 0.5);
+        }
+        70% {
+          box-shadow:
+            0 10px 22px rgba(20, 153, 98, 0.45),
+            inset 0 -5px 10px rgba(0, 0, 0, 0.16),
+            0 0 0 22px rgba(37, 197, 130, 0);
+        }
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(37, 197, 130, 0.55);
+        }
+        70% {
+          box-shadow: 0 0 0 9px rgba(37, 197, 130, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(37, 197, 130, 0);
+        }
+      }
+      @keyframes fadein {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes springin {
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes popava {
+        from {
+          transform: scale(0.4);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes rise {
+        from {
+          transform: translateY(12px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes popUp {
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes drift {
+        0%,
+        100% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(40px, -30px);
+        }
+      }
+      .crown {
+        will-change: transform;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+        }
+        .lever.idle .lever-knob {
+          animation: none;
+        }
+        .pod {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (max-width: 1024px) {
+        /* narrow screens: rail back to a horizontal row above the wheel */
+        .rail {
+          position: static;
+          transform: none;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: center;
+          width: auto;
+          margin: clamp(8px, 1.6vh, 16px) 0 0;
+        }
+        .prize {
+          width: auto;
+          min-width: 128px;
+        }
+        .stage {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          margin-top: clamp(10px, 2vh, 20px);
+        }
+        .machine {
+          width: min(48vh, 70vw);
+        }
+        .lever {
+          width: clamp(96px, 26vw, 180px);
+        }
+      }
+      @media (max-width: 720px) {
+        .prize {
+          min-width: 120px;
+          padding: 7px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="confetti"></canvas>
+
+    <div class="app">
+      <svg class="corner-scrib" viewBox="0 0 150 60" aria-hidden="true">
+        <path
+          d="M6 42 C 26 18, 40 50, 60 26 S 96 44, 118 20 S 140 38, 146 24"
+        />
+        <path
+          d="M118 8 l 4 9 9 2 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -2 z"
+          stroke-width="3"
+        />
+      </svg>
+
+      <header class="head">
+        <a
+          class="brand"
+          href="https://classkick.com"
+          target="_blank"
+          rel="noopener"
+        >
+          <img
+            src="https://classkick.com/images/dfs.svg"
+            alt="Classkick"
+            onerror="
+              this.outerHTML =
+                '<span class=&quot;wordmark&quot;>classkick</span>'
+            "
+          />
+        </a>
+        <h1 class="title"><span class="spark">🎉</span> Grand Prize Raffle</h1>
+        <p class="subtitle"><span>🍎</span> Mission: Make Teachers Visible</p>
+      </header>
+
+      <div class="stage">
+        <div class="rail" id="rail"></div>
+        <div class="machine" id="machine">
+          <div class="dome" id="dome">
+            <div class="glass">
+              <canvas id="ballCanvas" width="640" height="640"></canvas>
+            </div>
+            <div class="dome-glint"></div>
+            <div class="hatch"></div>
+            <div class="note" id="note" style="display: none">
+              <div class="inner">
+                <div class="big">🫧</div>
+                <h3>No entrants yet</h3>
+                <p>Connect your sheet in Settings.</p>
+              </div>
+            </div>
+          </div>
+          <div class="neck"><span class="chute-lip"></span></div>
+          <div class="base">
+            <span class="base-badge">🍎 CLASSKICK RAFFLE</span>
+          </div>
+          <div class="tray" id="tray"><span class="tray-cradle"></span></div>
+          <button
+            class="lever idle"
+            id="drawLever"
+            aria-label="Pull the lever to draw a winner"
+          >
+            <span class="lever-hub"></span>
+            <span class="lever-arm">
+              <span class="lever-rod"></span>
+              <span class="lever-knob">PULL</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- operator controls: hidden overlay, toggled with the gear or the C key -->
+    <button
+      class="gear"
+      id="gearBtn"
+      title="Operator controls (press C)"
+      aria-label="Operator controls"
+    >
+      ⚙
+    </button>
+    <div class="controls" id="controls">
+      <div class="controls-title">
+        <span>⚙️ Operator controls</span>
+        <span class="ctrl-hint" id="ctrlHint"></span>
+        <button class="ctrl-close" id="ctrlClose" aria-label="Close controls">
+          ✕
+        </button>
+      </div>
+      <div class="bar">
+        <button class="tool primary" id="spinBtn2">
+          <span class="ic">🎯</span> Draw
+        </button>
+        <button class="tool" id="settingsBtn">
+          <span class="ic">⚙️</span> Settings
+        </button>
+        <span class="tool" id="prizeWrap">
+          <span class="ic">🏷️</span> Drawing:
+          <span id="prizeChips" class="chips"></span>
+        </span>
+        <button class="tool" id="wallBtn">
+          <span class="ic">🏆</span> View all winners
+        </button>
+        <button
+          class="tool"
+          id="exportBtn"
+          title="Download a CSV of winners with full name + email (operator only, never shown on screen)"
+        >
+          <span class="ic">⬇️</span> Download winners
+        </button>
+        <button class="tool" id="fsBtn">
+          <span class="ic">⛶</span> Fullscreen
+        </button>
+        <button class="tool" id="muteBtn">
+          <span class="ic">🔊</span> Sound
+        </button>
+        <button class="tool" id="resetBtn">
+          <span class="ic">↺</span> Start over
+        </button>
+      </div>
+      <div class="strip" id="strip"></div>
+    </div>
+
+    <!-- settings -->
+    <div class="panel" id="panel">
+      <h2>Connect your Google Sheet</h2>
+      <p>
+        Share it <b>“Anyone with the link → Viewer”</b>, or
+        <b>File → Share → Publish to web</b> (one tab, CSV). Then paste the
+        link.
+      </p>
+      <div class="field">
+        <label for="urlInput">Google Sheet link</label>
+        <input
+          id="urlInput"
+          type="text"
+          placeholder="https://docs.google.com/spreadsheets/d/…"
+        />
+      </div>
+      <div class="cols">
+        <div class="field">
+          <label for="colName">Name column</label
+          ><select id="colName"></select>
+        </div>
+        <div class="field">
+          <label for="colTickets">Raffle Tickets column</label
+          ><select id="colTickets"></select>
+        </div>
+        <div class="field">
+          <label for="colEmail"
+            >Email column
+            <span style="font-weight: 600; color: var(--muted)"
+              >(optional)</span
+            ></label
+          ><select id="colEmail"></select>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button class="btn btn-go" id="loadBtn" style="flex: 1">
+          ✨ Load entrants
+        </button>
+        <button
+          class="btn btn-ghost"
+          id="refreshBtn"
+          title="Re-pull the latest data from the sheet"
+        >
+          🔄 Reload from sheet
+        </button>
+      </div>
+      <div class="hint" id="settingsHint">
+        <b>Reload from sheet</b> pulls the latest sheet edits (resets the
+        current run). <b>Start over</b> just restarts the raffle with the loaded
+        entrants.
+      </div>
+      <div
+        class="field"
+        style="
+          margin-top: 16px;
+          border-top: 1px solid var(--divider);
+          padding-top: 16px;
+        "
+      >
+        <label for="sampleSelect">Preview sample data (no sheet needed)</label>
+        <select id="sampleSelect">
+          <option value="12">Booth demo · 12 entrants (readable names)</option>
+          <option value="100">Small crowd · 100 entrants</option>
+          <option value="500">Expected turnout · 500 entrants</option>
+          <option value="1500">Max / stress test · 1,500 entrants</option>
+        </select>
+        <div class="hint">
+          Generates fake entrants (with 1–6 tickets each) to preview the machine
+          at scale (shows up to 60 balls; odds always use the full count).
+          Overrides any loaded sheet.
+        </div>
+      </div>
+    </div>
+
+    <!-- winner reveal -->
+    <div class="scrim" id="winScrim">
+      <div class="wincard" id="winCard"></div>
+    </div>
+
+    <!-- podium -->
+    <div class="podium-screen" id="podiumScreen">
+      <div class="pod-glow" id="podGlow"></div>
+      <div class="pod-head">
+        <h1>
+          <span class="conf-emoji">🎉</span> Our Raffle Winners!
+          <span class="conf-emoji">🎉</span>
+        </h1>
+      </div>
+      <div class="podium" id="podium"></div>
+      <div class="pod-foot">
+        <div class="collect">
+          <span class="ic">📣</span> See a Classkick team member at the booth to
+          collect your prize
+        </div>
+        <div style="display: flex; gap: 10px">
+          <button class="btn btn-go" id="podWallBtn">
+            🏆 View all winners
+          </button>
+          <button class="btn btn-ghost" id="podResetBtn">↺ Start over</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- winners wall -->
+    <div class="wall-screen" id="wallScreen">
+      <div class="wall-top">
+        <h1>🏆 Raffle Winners <span class="t" id="wallCount"></span></h1>
+        <div class="wall-actions">
+          <button
+            class="tool danger"
+            id="wallClearBtn"
+            style="color: var(--coral)"
+          >
+            <span class="ic">🗑️</span> Clear log
+          </button>
+          <button class="tool" id="wallCloseBtn">
+            <span class="ic">✕</span> Close
+          </button>
+        </div>
+      </div>
+      <div id="wallBody"></div>
+    </div>
+
+    <!-- previous winners strip now lives inside #controls (below the fold) -->
+
+    <script>
+      /* ════════════════════════════════════════════════
+   Paste your published Google Sheet link here to open
+   straight to your data. Leave "" for the sample wheel.
+   ════════════════════════════════════════════════ */
+      const DEFAULT_SHEET_URL = "";
+
+      const PRIZES = [
+        { place: "3rd", amount: "$250", medal: "🥉" },
+        { place: "2nd", amount: "$500", medal: "🥈" },
+        { place: "1st", amount: "$1,000", medal: "🥇" },
+      ];
+
+      const SLICE_COLORS = [
+        "#25c582",
+        "#ffdf78",
+        "#3498fe",
+        "#723dff",
+        "#e86826",
+        "#88c043",
+        "#ff6b6b",
+        "#2dcdf8",
+        "#b568a9",
+        "#149962",
+        "#82c3fb",
+        "#f5b521",
+      ];
+      const CONFETTI_COLORS = [
+        "#25c582",
+        "#ffdf78",
+        "#88c043",
+        "#3498fe",
+        "#ff6b6b",
+        "#723dff",
+        "#e86826",
+        "#2dcdf8",
+      ];
+      const CUTE_EMOJI = [
+        "🐱",
+        "🐶",
+        "🦊",
+        "🐰",
+        "🐼",
+        "🐸",
+        "🦄",
+        "🐧",
+        "🐯",
+        "🐨",
+        "🦁",
+        "🐵",
+        "🦉",
+        "🐙",
+        "🐢",
+        "🦖",
+        "🐥",
+        "🐝",
+      ];
+
+      const STICKER_BASE = "https://assets.classkick.com/sticker-images/";
+      const STICKERS = [
+        "owl_green",
+        "fox",
+        "cat1",
+        "cat2",
+        "dog1",
+        "shiba_inu",
+        "bunny1",
+        "bear1",
+        "pig1",
+        "giraffe1",
+        "chicken1",
+        "bird1",
+        "chimpmunk",
+        "squirrel_profile",
+        "bunny_profile",
+        "bird_profile",
+        "racoon",
+        "beaver",
+      ];
+
+      const SAMPLE = [
+        {
+          name: "Nancy Alvarez",
+          tickets: 6,
+          email: "nancy.alvarez@classkick.com",
+        },
+        { name: "Kaity Brooks", tickets: 5, email: "kaity@lincolnhigh.org" },
+        { name: "Andrew Chen", tickets: 4, email: "achen@riverside.edu" },
+        { name: "Sandip Patel", tickets: 3, email: "sandip.patel@gmail.com" },
+        { name: "Faustino Reyes", tickets: 6, email: "freyes@classkick.com" },
+        { name: "Rachel Kim", tickets: 2, email: "rachel.kim@oakwood.k12.org" },
+        { name: "Hunter Walsh", tickets: 1, email: "hunterw@gmail.com" },
+        { name: "Thomas Okafor", tickets: 3, email: "tokafor@school.net" },
+        { name: "Priya Nair", tickets: 4, email: "priya@maplelearning.org" },
+        { name: "Diego Martín", tickets: 2, email: "dmartin@escuela.mx" },
+        { name: "Mei Tanaka", tickets: 5, email: "mei.tanaka@classkick.com" },
+        { name: "Jordan Lee", tickets: 1, email: "jlee@hotmail.com" },
+      ];
+
+      // build a fake sample of N entrants to preview the wheel at scale
+      const SAMPLE_FIRST =
+        "Nancy,Kaity,Andrew,Sandip,Faustino,Rachel,Hunter,Thomas,Priya,Diego,Mei,Jordan,Aisha,Liam,Sofia,Noah,Emma,Mateo,Yuki,Omar,Grace,Leo,Zara,Ivan,Hana,Carlos,Nina,Ravi,Lena,Tariq,Maya,Owen,Freya,Kenji,Bea,Sam,Tessa,Cole,Anya,Dev".split(
+          ",",
+        );
+      const SAMPLE_LAST =
+        "Alvarez,Brooks,Chen,Patel,Reyes,Kim,Walsh,Okafor,Nair,Martin,Tanaka,Lee,Khan,Silva,Park,Rossi,Nguyen,Haddad,Costa,Singh,Owens,Vega,Ito,Bauer,Mensah,Cruz,Flores,Adeyemi,Novak,Romano".split(
+          ",",
+        );
+      const SAMPLE_DOMAINS =
+        "classkick.com,gmail.com,school.org,district.edu,k12.org,academy.net".split(
+          ",",
+        );
+      function generateSample(n) {
+        const out = [];
+        for (let i = 0; i < n; i++) {
+          const f = SAMPLE_FIRST[i % SAMPLE_FIRST.length];
+          const l = SAMPLE_LAST[(i * 7) % SAMPLE_LAST.length];
+          const r = cryptoFloat();
+          const tickets =
+            r < 0.4
+              ? 1
+              : r < 0.65
+                ? 2
+                : r < 0.82
+                  ? 3
+                  : r < 0.92
+                    ? 4
+                    : r < 0.97
+                      ? 5
+                      : 6;
+          const email =
+            (f + "." + l).toLowerCase() +
+            (i + 1) +
+            "@" +
+            SAMPLE_DOMAINS[i % SAMPLE_DOMAINS.length];
+          out.push({ name: f + " " + l, tickets, email });
+        }
+        return out;
+      }
+
+      const LS_KEY = "ck-raffle-winners-v1";
+
+      let state = {
+        url: "",
+        headers: [],
+        rows: [],
+        map: { name: "", tickets: "", email: "" },
+        live: false,
+        sampleData: null, // generated large sample when previewing scale
+        pool: [], // frozen entrants for the current run
+        winners: [], // {place,amount,medal,name,sticker,emoji}
+        prizeIndex: 0,
+        pending: null,
+        phase: "idle", // idle | spinning | revealing | podium
+        muted: false,
+      };
+
+      const $ = (s) => document.querySelector(s);
+
+      /* ---------- helpers (shared w/ leaderboard) ---------- */
+      function numify(v) {
+        if (v == null) return NaN;
+        const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
+        return isNaN(n) ? NaN : n;
+      }
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      }
+      function looksEmail(v) {
+        return /\S+@\S+\.\S+/.test(String(v || ""));
+      }
+      function localPart(v) {
+        return String(v).split("@")[0].trim();
+      }
+      // mask the local part so the projector never shows the full address:
+      // "nancy.alvarez@classkick.com" -> "na•••@classkick.com"
+      function maskEmail(v) {
+        if (!looksEmail(v)) return "";
+        const [loc, dom] = String(v).trim().split("@");
+        const keep = Math.min(2, loc.length);
+        return loc.slice(0, keep) + "•••@" + dom;
+      }
+      // initials only, for a no-PII public display: "Nancy Alvarez" -> "N.A.",
+      // "nancy.alvarez@classkick.com" -> "N.A.", "Nic" -> "N."
+      function initials(v) {
+        let s = String(v || "").trim();
+        if (!s) return "?";
+        if (looksEmail(s)) s = localPart(s);
+        const parts = s.split(/[\s._\-]+/).filter(Boolean);
+        if (!parts.length) return "?";
+        const first = parts[0][0];
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+        return (first + (last ? "." + last : "") + ".").toUpperCase();
+      }
+      function hashStr(str, mult) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++)
+          h = (h * mult + str.charCodeAt(i)) >>> 0;
+        return h;
+      }
+      function pickEmoji(name) {
+        return CUTE_EMOJI[hashStr(name, 17) % CUTE_EMOJI.length];
+      }
+      function pickStickerName(name) {
+        return STICKERS[hashStr(name, 23) % STICKERS.length];
+      }
+      function stickerUrl(n) {
+        return STICKER_BASE + n + ".png";
+      }
+      function cryptoFloat() {
+        const a = new Uint32Array(1);
+        crypto.getRandomValues(a);
+        return a[0] / 4294967296;
+      }
+      function cryptoInt(min, max) {
+        return min + Math.floor(cryptoFloat() * (max - min + 1));
+      }
+
+      function parseCSV(text) {
+        const rows = [];
+        let row = [],
+          field = "",
+          q = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (q) {
+            if (c === '"') {
+              if (text[i + 1] === '"') {
+                field += '"';
+                i++;
+              } else q = false;
+            } else field += c;
+          } else {
+            if (c === '"') q = true;
+            else if (c === ",") {
+              row.push(field);
+              field = "";
+            } else if (c === "\n") {
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            } else if (c === "\r") {
+            } else field += c;
+          }
+        }
+        if (field.length || row.length) {
+          row.push(field);
+          rows.push(row);
+        }
+        return rows.filter((r) => r.some((c) => c.trim() !== ""));
+      }
+
+      function toCsvUrl(raw) {
+        raw = raw.trim();
+        if (!raw) return "";
+        if (/\/pub(html)?/.test(raw)) {
+          const base = raw.split(/\/pub(?:html)?/)[0] + "/pub";
+          const gid = (raw.match(/[#&?]gid=([0-9]+)/) || [])[1];
+          return base + "?output=csv" + (gid ? "&single=true&gid=" + gid : "");
+        }
+        const id = (raw.match(/\/d\/(?:e\/)?([a-zA-Z0-9-_]+)/) || [])[1];
+        if (!id) return raw;
+        const gid = (raw.match(/[#&?]gid=([0-9]+)/) || [])[1] || "0";
+        return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
+      }
+
+      function guess(headers, kinds) {
+        const lc = headers.map((h) => h.toLowerCase());
+        for (const k of kinds) {
+          const i = lc.findIndex((h) => h.includes(k));
+          if (i >= 0) return headers[i];
+        }
+        return "";
+      }
+      function autoMap(headers) {
+        const name =
+          guess(headers, [
+            "name",
+            "email",
+            "teacher",
+            "user",
+            "player",
+            "who",
+          ]) ||
+          headers[0] ||
+          "";
+        const tickets =
+          guess(headers, ["raffle", "ticket", "entries", "entry", "draws"]) ||
+          "";
+        const email = guess(headers, ["email", "mail", "e-mail"]) || "";
+        return { name, tickets, email };
+      }
+
+      /* ---------- data fetch ---------- */
+      async function loadFromUrl(raw) {
+        const csvUrl = toCsvUrl(raw);
+        setStatus(
+          '<span class="live"><span class="dot"></span> Fetching your sheet…</span>',
+        );
+        const res = await fetch(csvUrl, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const txt = await res.text();
+        if (/^\s*</.test(txt) || /<!doctype|<html/i.test(txt.slice(0, 300)))
+          throw new Error("got-html");
+        const grid = parseCSV(txt);
+        if (grid.length < 2) throw new Error("empty");
+        const headers = grid[0].map((h) => h.trim());
+        const rows = grid.slice(1).map((r) => {
+          const o = {};
+          headers.forEach((h, i) => (o[h] = (r[i] || "").trim()));
+          return o;
+        });
+        state.url = raw;
+        state.headers = headers;
+        state.rows = rows;
+        state.live = true;
+        state.sampleData = null;
+        const sampleSel = $("#sampleSelect");
+        if (sampleSel) sampleSel.value = "12";
+        state.map = autoMap(headers);
+        fillSelects();
+        startRun();
+      }
+
+      function fillSelects() {
+        const opts = state.headers
+          .map(
+            (h) => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`,
+          )
+          .join("");
+        $("#colName").innerHTML = opts;
+        $("#colTickets").innerHTML =
+          `<option value="">— auto —</option>` + opts;
+        $("#colEmail").innerHTML = `<option value="">— none —</option>` + opts;
+        $("#colName").value = state.map.name;
+        $("#colTickets").value = state.map.tickets;
+        $("#colEmail").value = state.map.email;
+      }
+
+      /* ---------- build entrant pool ---------- */
+      function buildPool() {
+        let data;
+        if (state.live) {
+          const { name, tickets, email } = state.map;
+          let excluded = 0;
+          data = state.rows
+            .map((r) => {
+              const t = numify(r[tickets]);
+              const nameRaw = (r[name] || "").trim();
+              let em = email && r[email] ? r[email].trim() : "";
+              if (!em && looksEmail(nameRaw)) em = nameRaw;
+              const display = looksEmail(nameRaw)
+                ? localPart(nameRaw)
+                : nameRaw;
+              return { name: display, tickets: t, email: em };
+            })
+            .filter((e) => {
+              const ok = e.name && !isNaN(e.tickets) && e.tickets >= 1;
+              if (!ok) excluded++;
+              return ok;
+            });
+          state.excluded = excluded;
+        } else {
+          const src = state.sampleData || SAMPLE;
+          data = src.map((s) => ({
+            name: s.name,
+            tickets: s.tickets,
+            email: s.email || "",
+          }));
+          state.excluded = 0;
+        }
+        // assign deterministic sticker per person
+        data.forEach((e) => {
+          e.stickerName = pickStickerName(e.name);
+          e.emoji = pickEmoji(e.name);
+        });
+        return data;
+      }
+
+      function startRun() {
+        state.pool = buildPool();
+        state.winners = [];
+        state.prizeIndex = 0;
+        state.pending = null;
+        state.phase = "idle";
+        clearOutball();
+        renderRail();
+        renderPrizeSelect();
+        renderWheel();
+        renderStatus();
+      }
+
+      /* ---------- lotto ball machine ---------- */
+      // The chamber renders in a fixed 640x640 canvas space (CSS-scaled to the
+      // dome) so the physics constants stay screen-independent. We show up to
+      // BALL_CAP balls regardless of pool size, so the look holds at any scale.
+      const BALL_CAP = 60;
+      const machine = {
+        canvas: null,
+        ctx: null,
+        W: 640,
+        cx: 320,
+        cy: 320,
+        R: 300,
+        balls: [],
+        churn: 0.3, // current agitation
+        churnTarget: 0.3, // eased toward this each frame
+        gravity: 0.2, // raised during a shuffle so balls cycle fast
+        running: false,
+        outball: null,
+      };
+
+      // lazy-load (and cache) one sticker image per name, so each ball can wear
+      // its entrant's real Classkick sticker
+      const stickerCache = new Map();
+      function stickerImg(name) {
+        let img = stickerCache.get(name);
+        if (!img) {
+          img = new Image();
+          img.src = stickerUrl(name);
+          stickerCache.set(name, img);
+        }
+        return img;
+      }
+
+      function lighten(hex, amt) {
+        const c = hex.replace("#", "");
+        const r = parseInt(c.slice(0, 2), 16),
+          g = parseInt(c.slice(2, 4), 16),
+          b = parseInt(c.slice(4, 6), 16);
+        const m = (v) => Math.round(v + (255 - v) * amt);
+        return `rgb(${m(r)},${m(g)},${m(b)})`;
+      }
+
+      // One ball per entrant (up to BALL_CAP), each wearing that entrant's
+      // sticker + initials, so the chamber mirrors the wheel/card identity.
+      function makeBalls(entrants) {
+        const { cx, cy, R } = machine;
+        const n = entrants.length;
+        const r = Math.max(15, Math.min(38, 210 / Math.sqrt(Math.max(n, 1))));
+        machine.balls = entrants.map((e, i) => {
+          const a = Math.random() * Math.PI * 2;
+          const rr = Math.sqrt(Math.random()) * (R - r);
+          const color = SLICE_COLORS[i % SLICE_COLORS.length];
+          return {
+            x: cx + Math.cos(a) * rr,
+            y: cy + Math.sin(a) * rr,
+            vx: (Math.random() - 0.5) * 3,
+            vy: (Math.random() - 0.5) * 3,
+            r,
+            color,
+            light: lighten(color, 0.5),
+            sticker: stickerImg(e.stickerName),
+            emoji: e.emoji,
+            initials: initials(e.name),
+          };
+        });
+      }
+
+      // a hard kick that blasts the whole chamber, like a real cage erupting
+      function tossBalls() {
+        for (const b of machine.balls) {
+          b.vx += (Math.random() - 0.5) * 32;
+          b.vy -= 14 + Math.random() * 24;
+        }
+      }
+
+      function stepMachine() {
+        const { ctx, cx, cy, R, W, balls } = machine;
+        if (!ctx) return;
+        machine.churn += (machine.churnTarget - machine.churn) * 0.05;
+        const churn = machine.churn;
+        ctx.clearRect(0, 0, W, W);
+        const g = machine.gravity;
+        const jitter = churn * 2.2; // stronger random kicks when churn is high
+        for (const b of balls) {
+          b.vy += g; // gravity
+          b.vx += (Math.random() - 0.5) * jitter; // random agitation
+          b.vy += (Math.random() - 0.5) * jitter;
+          b.x += b.vx;
+          b.y += b.vy;
+          b.vx *= 0.988;
+          b.vy *= 0.988;
+        }
+        // keep balls from stacking on one point so the pile reads as distinct balls
+        for (let i = 0; i < balls.length; i++) {
+          for (let j = i + 1; j < balls.length; j++) {
+            const a = balls[i],
+              c = balls[j];
+            const dx = c.x - a.x,
+              dy = c.y - a.y;
+            const d = Math.hypot(dx, dy),
+              min = a.r + c.r;
+            if (d > 0 && d < min) {
+              const nx = dx / d,
+                ny = dy / d,
+                push = (min - d) / 2;
+              a.x -= nx * push;
+              a.y -= ny * push;
+              c.x += nx * push;
+              c.y += ny * push;
+              const p = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+              if (p < 0) {
+                a.vx += p * nx * 0.5;
+                a.vy += p * ny * 0.5;
+                c.vx -= p * nx * 0.5;
+                c.vy -= p * ny * 0.5;
+              }
+            }
+          }
+        }
+        for (const b of balls) {
+          const dx = b.x - cx,
+            dy = b.y - cy,
+            d = Math.hypot(dx, dy) || 1,
+            max = R - b.r;
+          if (d > max) {
+            const nx = dx / d,
+              ny = dy / d;
+            b.x = cx + nx * max;
+            b.y = cy + ny * max;
+            const dot = b.vx * nx + b.vy * ny;
+            b.vx -= 1.45 * dot * nx;
+            b.vy -= 1.45 * dot * ny;
+            b.vx *= 0.86;
+            b.vy *= 0.86;
+          }
+          drawBall(b);
+        }
+      }
+
+      function drawBall(b) {
+        const ctx = machine.ctx;
+        const g = ctx.createRadialGradient(
+          b.x - b.r * 0.35,
+          b.y - b.r * 0.4,
+          b.r * 0.1,
+          b.x,
+          b.y,
+          b.r,
+        );
+        g.addColorStop(0, b.light);
+        g.addColorStop(1, b.color);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+        // the Classkick sticker, tucked into the upper part of the ball
+        const cyImg = b.y - b.r * 0.16;
+        const s = b.r * 1.12;
+        if (b.sticker && b.sticker.complete && b.sticker.naturalWidth) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(b.x, cyImg, b.r * 0.6, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(b.sticker, b.x - s / 2, cyImg - s / 2, s, s);
+          ctx.restore();
+        } else {
+          ctx.font = `${b.r * 0.8}px serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(b.emoji, b.x, cyImg);
+        }
+        // the entrant's initials across the lower part of the ball
+        ctx.font = `700 ${(b.r * 0.46).toFixed(1)}px "Fredoka", system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = Math.max(2, b.r * 0.14);
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(255,255,255,.96)";
+        ctx.strokeText(b.initials, b.x, b.y + b.r * 0.52);
+        ctx.fillStyle = "#2c3438";
+        ctx.fillText(b.initials, b.x, b.y + b.r * 0.52);
+        // rim + glossy highlight
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,.8)";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r - 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,.4)";
+        ctx.beginPath();
+        ctx.ellipse(
+          b.x - b.r * 0.32,
+          b.y - b.r * 0.42,
+          b.r * 0.34,
+          b.r * 0.2,
+          -0.6,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      }
+
+      function machineLoop() {
+        stepMachine();
+        requestAnimationFrame(machineLoop);
+      }
+
+      function startMachine() {
+        machine.canvas = $("#ballCanvas");
+        machine.ctx = machine.canvas.getContext("2d");
+        if (!machine.running) {
+          machine.running = true;
+          requestAnimationFrame(machineLoop);
+        }
+      }
+
+      // rebuild the chamber to reflect the current pool (called on state changes)
+      function renderWheel() {
+        const note = $("#note");
+        const n = state.pool.length;
+        if (n === 0) {
+          machine.balls = [];
+          note.className = "note";
+          note.style.display = "grid";
+          note.innerHTML = `<div class="inner"><div class="big">🫧</div><h3>No entrants yet</h3><p>${state.live ? "No rows have ≥ 1 raffle ticket." : "Connect your sheet in Settings."}</p></div>`;
+          setSpinEnabled(false);
+          return;
+        }
+        note.style.display = "none";
+        makeBalls(state.pool.slice(0, BALL_CAP));
+        setSpinEnabled(state.phase === "idle");
+      }
+
+      /* ---------- prize rail + selector ---------- */
+      function activePrizeIndex() {
+        return state.prizeIndex;
+      }
+      function isAwarded(i) {
+        return state.winners.some((w) => w.idx === i);
+      }
+
+      function renderRail() {
+        const rail = $("#rail");
+        rail.innerHTML = PRIZES.map((p, i) => {
+          const win = state.winners.find((w) => w.idx === i);
+          const cls = win
+            ? "done"
+            : i === state.prizeIndex && state.phase !== "podium"
+              ? "active"
+              : "";
+          return `<div class="prize ${cls}">
+      ${win ? '<div class="check">✓</div>' : ""}
+      <div class="medal">${p.medal}</div>
+      <div>
+        <div class="plc">${p.place} prize</div>
+        <div class="amt">${p.amount}</div>
+        ${win ? `<div class="who">${escapeHtml(initials(win.name))}</div>` : ""}
+      </div>
+    </div>`;
+        }).join("");
+      }
+
+      function renderPrizeSelect() {
+        const wrap = $("#prizeChips");
+        wrap.innerHTML = PRIZES.map((p, i) => {
+          const awarded = isAwarded(i);
+          const cls =
+            (i === state.prizeIndex && !awarded ? "on " : "") +
+            (awarded ? "done" : "");
+          const label = awarded ? "✓ " + p.place : p.place;
+          const title = awarded
+            ? `${p.place} · ${p.amount} — click to re-draw`
+            : `${p.place} · ${p.amount}`;
+          return `<button class="chip ${cls}" data-i="${i}" title="${title}">${label}</button>`;
+        }).join("");
+        wrap.querySelectorAll(".chip").forEach((b) => {
+          b.onclick = () => selectPrize(parseInt(b.dataset.i, 10));
+        });
+      }
+
+      function selectPrize(i) {
+        if (state.phase !== "idle") return; // not mid-spin / reveal
+        if (isAwarded(i)) {
+          const w = state.winners.find((x) => x.idx === i);
+          if (
+            !confirm(
+              `Re-draw the ${PRIZES[i].place} prize? This clears ${initials(w.name)} and puts them back in the machine.`,
+            )
+          )
+            return;
+          state.winners = state.winners.filter((x) => x.idx !== i);
+          if (w.entrant && state.pool.indexOf(w.entrant) < 0)
+            state.pool.push(w.entrant);
+          state.prizeIndex = i;
+          clearOutball();
+          renderRail();
+          renderPrizeSelect();
+          renderWheel();
+          renderStatus();
+        } else {
+          state.prizeIndex = i;
+          renderRail();
+          renderPrizeSelect();
+        }
+      }
+
+      /* ---------- status ---------- */
+      function setStatus(html) {
+        $("#status").innerHTML = html;
+      }
+      function renderStatus() {
+        const n = state.pool.length;
+        const totalT = state.pool.reduce((s, e) => s + e.tickets, 0);
+        // setup instruction lives in the controls overlay, not the audience view
+        const hint = $("#ctrlHint");
+        if (hint)
+          hint.textContent = state.live
+            ? ""
+            : "Showing sample data — open Settings to connect your sheet";
+        if (!n) {
+          setStatus(
+            state.live
+              ? '<span class="warn">No eligible entrants in this sheet.</span>'
+              : "Sample machine",
+          );
+          return;
+        }
+        const exc = state.excluded
+          ? ` · ${state.excluded} skipped (no tickets)`
+          : "";
+        setStatus(
+          state.live
+            ? `<span class="live"><span class="dot"></span> ${n} entrants · ${totalT} tickets${exc}</span>`
+            : `Sample · ${n} entrants · ${totalT} tickets`,
+        );
+      }
+
+      function setSpinEnabled(on) {
+        const can = on && state.pool.length > 0 && state.phase === "idle";
+        $("#drawLever").disabled = !can;
+        $("#spinBtn2").disabled = !can;
+        $("#drawLever").classList.toggle("idle", can);
+      }
+
+      /* ---------- the draw (weighted-fair lotto pull) ---------- */
+      function reduced() {
+        return matchMedia("(prefers-reduced-motion:reduce)").matches;
+      }
+
+      // Weighted random pick: entrant i is chosen with probability
+      // tickets_i / totalTickets, so ticket counts set the true odds.
+      function weightedPick() {
+        const pool = state.pool;
+        const total = pool.reduce((s, e) => s + e.tickets, 0);
+        let u = cryptoFloat() * total;
+        for (const e of pool) {
+          u -= e.tickets;
+          if (u < 0) return e;
+        }
+        return pool[pool.length - 1];
+      }
+
+      function pullLever() {
+        const lev = $("#drawLever");
+        lev.classList.remove("idle");
+        lev.classList.add("pull");
+        setTimeout(() => lev.classList.remove("pull"), 620);
+      }
+
+      function clearOutball() {
+        if (machine.outball) {
+          machine.outball.remove();
+          machine.outball = null;
+        }
+      }
+
+      function draw() {
+        if (state.phase !== "idle" || !state.pool.length) return;
+        state.phase = "spinning";
+        setSpinEnabled(false);
+        Sound.resume();
+        clearOutball();
+
+        pullLever();
+        Sound.shuffle();
+
+        // crank the chamber into a violent storm: spike agitation + gravity now,
+        // then keep re-erupting so the balls churn the whole time, like a cage
+        machine.churn = 5.5;
+        machine.churnTarget = 5.5;
+        machine.gravity = 0.5;
+        tossBalls();
+        const reToss = [
+          setTimeout(tossBalls, 420),
+          setTimeout(tossBalls, 860),
+          setTimeout(tossBalls, 1320),
+          setTimeout(tossBalls, 1760),
+        ];
+
+        const winner = weightedPick();
+        state.pending = winner;
+
+        // dense ball clatter for the whole shuffle
+        let ticks = 0;
+        const clatter = setInterval(() => {
+          Sound.clack(0.05 + Math.random() * 0.09);
+          if (++ticks > 30) clearInterval(clatter);
+        }, 65);
+
+        const wait = reduced() ? 400 : 2150;
+        setTimeout(() => {
+          clearInterval(clatter);
+          reToss.forEach(clearTimeout);
+          rollOutBall(winner);
+        }, wait);
+      }
+
+      // A single ball drops from the chamber and rolls into the catch tray,
+      // carrying the winner's Classkick sticker + initials (matching the card).
+      function rollOutBall(w) {
+        machine.churnTarget = 0.3; // ease the chamber back to a gentle settle
+        machine.gravity = 0.2; // restore normal gravity
+
+        const machineEl = $("#machine");
+        const dome = $("#dome");
+        const tray = $("#tray");
+        const ball = document.createElement("div");
+        ball.className = "outball";
+        ball.innerHTML = `<div class="ob-face"><img src="${stickerUrl(w.stickerName)}" alt="" onerror="this.style.display='none';this.parentNode.classList.add('emoji');this.parentNode.dataset.e='${w.emoji}'"></div><div class="ob-nm">${escapeHtml(initials(w.name))}</div>`;
+        machineEl.appendChild(ball);
+        machine.outball = ball;
+
+        // travel from the dome hatch down into the tray, measured live so it
+        // adapts to any screen size; the face tumbles as it goes
+        const m = machineEl.getBoundingClientRect();
+        const d = dome.getBoundingClientRect();
+        const t = tray.getBoundingClientRect();
+        const startX = d.left + d.width / 2 - m.left;
+        const startY = d.bottom - m.top - 6;
+        const endX = t.left + t.width / 2 - m.left;
+        const endY = t.top + t.height / 2 - m.top;
+        ball.style.left = startX + "px";
+        ball.style.top = startY + "px";
+        ball.style.transform = "translate(-50%,-50%)";
+        ball.classList.add("roll");
+
+        let clatter = 0;
+        const roll = setInterval(() => {
+          Sound.clack(0.09);
+          if (++clatter > 7) clearInterval(roll);
+        }, 90);
+
+        const dx = endX - startX,
+          dy = endY - startY;
+        const anim = ball.animate(
+          [
+            { transform: "translate(-50%,-50%) translate(0,0)" },
+            {
+              transform: `translate(-50%,-50%) translate(${dx * 0.5}px, ${dy * 0.42}px)`,
+              offset: 0.5,
+            },
+            { transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px)` },
+          ],
+          {
+            duration: reduced() ? 250 : 1050,
+            easing: "cubic-bezier(.45,.05,.35,1)",
+            fill: "forwards",
+          },
+        );
+        anim.onfinish = () => {
+          clearInterval(roll);
+          ball.style.left = endX + "px";
+          ball.style.top = endY + "px";
+          ball.style.transform = "translate(-50%,-50%)";
+          anim.cancel();
+          Sound.thunk(); // the ball drops into the tray
+          state.phase = "revealing";
+          setTimeout(() => reveal(w), reduced() ? 150 : 460);
+        };
+      }
+
+      /* ---------- winner reveal ---------- */
+      function avaMarkup(entrant, cls) {
+        return `<div class="ava ${cls || ""}">
+    <img src="${stickerUrl(entrant.stickerName)}" alt="" onerror="this.parentNode.classList.add('emoji');this.parentNode.textContent='${entrant.emoji}'">
+  </div>`;
+      }
+      function reveal(entrant) {
+        const p = PRIZES[state.prizeIndex];
+        const card = $("#winCard");
+        card.className = "wincard";
+        card.innerHTML = `
+    <div class="ribbon"><span class="m">${p.medal}</span> ${p.amount} · ${p.place} prize</div>
+    ${avaMarkup(entrant)}
+    <div class="nm">${escapeHtml(initials(entrant.name))}</div>
+    <div class="cap">🎉 Winner! 🎉</div>
+    <div class="acts">
+      <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
+      <button class="btn btn-go" id="nextBtn">${isLastDraw() ? "🏆 Show winners" : "Next prize →"}</button>
+    </div>`;
+        $("#winScrim").classList.add("show");
+        requestAnimationFrame(() => card.classList.add("in"));
+        Sound.win();
+        confettiBurst(120);
+        $("#redrawBtn").onclick = redraw;
+        $("#nextBtn").onclick = confirmWinner;
+      }
+
+      function isLastDraw() {
+        // true when, after awarding this prize, no entrant or no prize remains
+        const prizesLeftAfter = PRIZES.map((p, i) => i).filter(
+          (i) => !isAwarded(i) && i !== state.prizeIndex,
+        ).length;
+        const poolLeftAfter = state.pool.length - 1;
+        return poolLeftAfter <= 0 || prizesLeftAfter <= 0;
+      }
+
+      function closeWin() {
+        $("#winScrim").classList.remove("show");
+        clearOutball();
+      }
+
+      function redraw() {
+        // no-show: remove from pool without awarding, re-draw the same prize
+        removeFromPool(state.pending);
+        state.pending = null;
+        closeWin();
+        state.phase = "idle";
+        renderWheel();
+        renderStatus();
+        if (!state.pool.length) {
+          setStatus(
+            '<span class="warn">No entrants left for this prize.</span>',
+          );
+          return;
+        }
+        setTimeout(draw, 420);
+      }
+
+      function removeFromPool(entrant) {
+        const i = state.pool.indexOf(entrant);
+        if (i >= 0) state.pool.splice(i, 1);
+      }
+
+      function confirmWinner() {
+        const p = PRIZES[state.prizeIndex];
+        state.winners.push({
+          idx: state.prizeIndex,
+          place: p.place,
+          amount: p.amount,
+          medal: p.medal,
+          name: state.pending.name,
+          stickerName: state.pending.stickerName,
+          emoji: state.pending.emoji,
+          email: maskEmail(state.pending.email),
+          entrant: state.pending, // kept so the tier can be re-drawn
+        });
+        removeFromPool(state.pending);
+        state.pending = null;
+        closeWin();
+
+        const nextIdx = PRIZES.map((p, i) => i).find((i) => !isAwarded(i));
+        const done = nextIdx === undefined || state.pool.length === 0;
+        if (done) {
+          state.phase = "podium";
+          showPodium();
+        } else {
+          state.prizeIndex = nextIdx;
+          state.phase = "idle";
+          renderRail();
+          renderPrizeSelect();
+          renderWheel();
+          renderStatus();
+        }
+      }
+
+      /* ---------- podium ---------- */
+      function dedupeStickers(winners) {
+        const used = new Set();
+        return winners.map((w) => {
+          let name = w.stickerName,
+            tries = 0;
+          while (used.has(name) && tries < STICKERS.length) {
+            name = STICKERS[(STICKERS.indexOf(name) + 1) % STICKERS.length];
+            tries++;
+          }
+          used.add(name);
+          return { ...w, stickerName: name };
+        });
+      }
+
+      function showPodium() {
+        const winners = dedupeStickers(
+          state.winners.slice().sort((a, b) => a.idx - b.idx),
+        ); // 3rd,2nd,1st by idx
+        recordRun(winners);
+        state.podiumReplay = false;
+        renderPodium(winners);
+      }
+
+      // replay a stored run's podium from the Winners Wall
+      function replayPodium(runIndex) {
+        const run = loadWall()[runIndex];
+        if (!run) return;
+        closeWall();
+        state.podiumReplay = true;
+        renderPodium(run.winners);
+      }
+
+      function renderPodium(winners) {
+        const replay = state.podiumReplay;
+        const byPlace = {};
+        winners.forEach((w) => (byPlace[w.idx] = w));
+        // visual order: 2nd (idx1) left, 1st (idx2) center, 3rd (idx0) right
+        const order = [
+          { w: byPlace[1], cls: "p2", crown: "🥈" },
+          { w: byPlace[2], cls: "p1", crown: "👑" },
+          { w: byPlace[0], cls: "p3", crown: "🥉" },
+        ];
+        $("#podium").innerHTML = order
+          .map((o, k) => {
+            if (!o.w) return `<div></div>`;
+            return `<div class="pod ${o.cls}" style="animation-delay:${k * 0.14}s">
+      <div class="crown">${o.crown}</div>
+      <div class="podcard">
+        ${avaMarkup(o.w)}
+        <div class="plc">${o.w.place} place</div>
+        <div class="nm">${escapeHtml(initials(o.w.name))}</div>
+        <div class="amt">${o.w.amount}</div>
+      </div>
+    </div>`;
+          })
+          .join("");
+
+        // ambient glows
+        const glow = $("#podGlow");
+        glow.innerHTML = ["#25c582", "#ffdf78", "#3498fe", "#ff6b6b", "#723dff"]
+          .map(
+            (c, i) =>
+              `<span style="width:${260 + i * 40}px;height:${260 + i * 40}px;background:${c};left:${[6, 72, 40, 18, 84][i]}%;top:${[12, 8, 60, 70, 55][i]}%;animation-delay:${i * 1.3}s"></span>`,
+          )
+          .join("");
+
+        // the Start over button doubles as Close when replaying a past run
+        const reset = $("#podResetBtn");
+        if (replay) {
+          reset.innerHTML = "✕ Close";
+          reset.onclick = () => {
+            $("#podiumScreen").classList.remove("show");
+            openWall();
+          };
+        } else {
+          reset.innerHTML = "↺ Start over";
+          reset.onclick = startOver;
+        }
+
+        // make sure nothing overlays the podium
+        $("#controls").classList.remove("open");
+        $("#panel").classList.remove("open");
+        $("#podiumScreen").classList.add("show");
+        requestAnimationFrame(() =>
+          document
+            .querySelectorAll("#podium .pod")
+            .forEach((el) => el.classList.add("in")),
+        );
+        Sound.fanfare();
+        confettiBurst(220);
+        setTimeout(() => confettiBurst(140), 700);
+      }
+
+      /* ---------- winners wall (localStorage) ---------- */
+      function loadWall() {
+        try {
+          return JSON.parse(localStorage.getItem(LS_KEY)) || [];
+        } catch (e) {
+          return [];
+        }
+      }
+      function saveWall(runs) {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(runs));
+        } catch (e) {}
+      }
+      function recordRun(winners) {
+        const runs = loadWall();
+        runs.unshift({
+          time: new Date().toISOString(),
+          winners: winners
+            .slice()
+            .sort((a, b) => b.idx - a.idx)
+            .map((w) => ({
+              idx: w.idx,
+              place: w.place,
+              amount: w.amount,
+              medal: w.medal,
+              name: w.name,
+              stickerName: w.stickerName,
+              emoji: w.emoji,
+              email: w.email || "",
+              // full name/email kept only in the operator's local record for the
+              // CSV export (never shown on screen); the display uses initials
+              fullName: (w.entrant && w.entrant.name) || w.name || "",
+              fullEmail: (w.entrant && w.entrant.email) || "",
+            })),
+        });
+        saveWall(runs);
+        renderStrip();
+      }
+      // operator-only: download a CSV of winners (full name + email) for follow-up.
+      // Triggers a file download, so no contact info is ever rendered on screen.
+      function csvCell(v) {
+        v = String(v == null ? "" : v);
+        return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }
+      function exportWinnersCSV() {
+        const runs = loadWall();
+        if (!runs.length) {
+          alert("No completed raffles to export yet.");
+          return;
+        }
+        const rows = [["Raffle", "Place", "Prize", "Name", "Email"]];
+        runs.forEach((run) =>
+          run.winners
+            .slice()
+            .sort((a, b) => a.idx - b.idx)
+            .forEach((w) =>
+              rows.push([
+                fmtTime(run.time),
+                w.place,
+                w.amount,
+                w.fullName || w.name || "",
+                w.fullEmail || "",
+              ]),
+            ),
+        );
+        const csv = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "raffle-winners.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+      function fmtTime(iso) {
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+      function renderStrip() {
+        const runs = loadWall();
+        const strip = $("#strip");
+        if (!runs.length) {
+          strip.classList.remove("show");
+          return;
+        }
+        const latest = runs[0];
+        strip.classList.add("show");
+        strip.innerHTML =
+          `<span class="lbl">Latest winners</span>` +
+          latest.winners
+            .map(
+              (w) =>
+                `<span class="chip"><span class="m">${w.medal}</span> ${escapeHtml(initials(w.name))} · ${w.amount}</span>`,
+            )
+            .join("") +
+          `<span class="link" id="stripView">View all (${runs.length})</span>` +
+          `<span class="link danger" id="stripClear">Clear log</span>`;
+        $("#stripView").onclick = openWall;
+        $("#stripClear").onclick = clearLog;
+      }
+      function wcardMarkup(w) {
+        return `<div class="wcard">
+    <div class="medal">${w.medal}</div>
+    <div class="ava"><img src="${stickerUrl(w.stickerName)}" alt="" onerror="this.parentNode.classList.add('emoji');this.parentNode.textContent='${w.emoji || "⭐"}'"></div>
+    <div class="meta"><div class="nm">${escapeHtml(initials(w.name))}</div><div class="amt">${w.place} place · ${w.amount}</div></div>
+  </div>`;
+      }
+      function openWall() {
+        const runs = loadWall();
+        $("#wallCount").textContent = runs.length
+          ? `(${runs.length} ${runs.length === 1 ? "raffle" : "raffles"})`
+          : "";
+        const body = $("#wallBody");
+        if (!runs.length) {
+          body.innerHTML = `<div class="wall-empty"><div class="big">🎟️</div><h3>No winners yet</h3><p>Completed raffles will appear here.</p></div>`;
+        } else {
+          body.innerHTML = runs
+            .map(
+              (run, i) => `<div class="run">
+      <div class="run-head">
+        <div class="when">Raffle · ${fmtTime(run.time)}</div>
+        <button class="btn btn-go run-replay" data-run="${i}">🎉 Show podium</button>
+      </div>
+      <div class="run-grid">${run.winners.map(wcardMarkup).join("")}</div>
+    </div>`,
+            )
+            .join("");
+          body.querySelectorAll(".run-replay").forEach((b) => {
+            b.onclick = () => replayPodium(parseInt(b.dataset.run, 10));
+          });
+        }
+        $("#wallScreen").classList.add("show");
+      }
+      function closeWall() {
+        $("#wallScreen").classList.remove("show");
+      }
+      function clearLog() {
+        if (!confirm("Clear all saved winners? This can't be undone.")) return;
+        saveWall([]);
+        renderStrip();
+        if ($("#wallScreen").classList.contains("show")) openWall();
+      }
+
+      /* ---------- start over ---------- */
+      function startOver() {
+        if (state.winners.length || loadWall().length) {
+          if (
+            !confirm(
+              "Start a new raffle? The current winners are already saved in Previous winners below.",
+            )
+          )
+            return;
+        }
+        $("#podiumScreen").classList.remove("show");
+        closeWin();
+        startRun();
+      }
+
+      /* ---------- confetti ---------- */
+      const cv = $("#confetti"),
+        cx = cv.getContext("2d");
+      let bits = [];
+      let raf = null;
+      function sizeCanvas() {
+        cv.width = innerWidth;
+        cv.height = innerHeight;
+      }
+      addEventListener("resize", sizeCanvas);
+      sizeCanvas();
+      function confettiBurst(count) {
+        if (reduced()) return;
+        for (let i = 0; i < (count || 100); i++) {
+          bits.push({
+            x: cv.width / 2 + (Math.random() - 0.5) * cv.width * 0.5,
+            y: cv.height * 0.3,
+            vx: (Math.random() - 0.5) * 11,
+            vy: Math.random() * -13 - 4,
+            g: 0.32 + Math.random() * 0.16,
+            s: 6 + Math.random() * 8,
+            rot: Math.random() * 6,
+            vr: (Math.random() - 0.5) * 0.45,
+            c: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+            life: 0,
+          });
+        }
+        if (!raf) tickConf();
+      }
+      function tickConf() {
+        cx.clearRect(0, 0, cv.width, cv.height);
+        bits.forEach((b) => {
+          b.vy += b.g;
+          b.x += b.vx;
+          b.y += b.vy;
+          b.rot += b.vr;
+          b.life++;
+          cx.save();
+          cx.translate(b.x, b.y);
+          cx.rotate(b.rot);
+          cx.fillStyle = b.c;
+          cx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s * 0.62);
+          cx.restore();
+        });
+        bits = bits.filter((b) => b.y < cv.height + 40 && b.life < 280);
+        if (bits.length) raf = requestAnimationFrame(tickConf);
+        else {
+          raf = null;
+          cx.clearRect(0, 0, cv.width, cv.height);
+        }
+      }
+
+      /* ---------- sound (WebAudio) ---------- */
+      const Sound = {
+        ctx: null,
+        muted: false,
+        resume() {
+          try {
+            if (!this.ctx)
+              this.ctx = new (window.AudioContext ||
+                window.webkitAudioContext)();
+            if (this.ctx.state === "suspended") this.ctx.resume();
+          } catch (e) {}
+        },
+        tick(vol) {
+          if (this.muted || !this.ctx) return;
+          const t = this.ctx.currentTime,
+            o = this.ctx.createOscillator(),
+            g = this.ctx.createGain();
+          o.type = "square";
+          o.frequency.value = 860 + Math.random() * 120;
+          g.gain.setValueAtTime(Math.max(0.01, vol || 0.1), t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          o.connect(g).connect(this.ctx.destination);
+          o.start(t);
+          o.stop(t + 0.06);
+        },
+        // a longer, louder motor rumble bed for the whole shuffle
+        shuffle() {
+          this.resume();
+          if (this.muted || !this.ctx) return;
+          const ctx = this.ctx,
+            t = ctx.currentTime;
+          const o = ctx.createOscillator(),
+            g = ctx.createGain(),
+            lfo = ctx.createOscillator(),
+            lg = ctx.createGain();
+          o.type = "sawtooth";
+          o.frequency.value = 66;
+          lfo.type = "sine";
+          lfo.frequency.value = 13;
+          lg.gain.value = 22;
+          lfo.connect(lg).connect(o.frequency);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.2, t + 0.12);
+          g.gain.setValueAtTime(0.2, t + 1.9);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 2.3);
+          o.connect(g).connect(ctx.destination);
+          o.start(t);
+          lfo.start(t);
+          o.stop(t + 2.35);
+          lfo.stop(t + 2.35);
+        },
+        // short plastic-ball clack (filtered noise burst)
+        clack(vol) {
+          this.resume();
+          if (this.muted || !this.ctx) return;
+          const ctx = this.ctx,
+            t = ctx.currentTime;
+          if (!this._noise) {
+            const buf = ctx.createBuffer(
+              1,
+              Math.floor(ctx.sampleRate * 0.12),
+              ctx.sampleRate,
+            );
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            this._noise = buf;
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = this._noise;
+          const bp = ctx.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = 900 + Math.random() * 2200;
+          bp.Q.value = 1.1;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(Math.max(0.02, vol || 0.08), t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+          src.connect(bp).connect(g).connect(ctx.destination);
+          src.start(t);
+          src.stop(t + 0.09);
+        },
+        // deep thunk when the winning ball drops into the tray
+        thunk() {
+          this.resume();
+          if (this.muted || !this.ctx) return;
+          const ctx = this.ctx,
+            t = ctx.currentTime;
+          const o = ctx.createOscillator(),
+            g = ctx.createGain();
+          o.type = "sine";
+          o.frequency.setValueAtTime(190, t);
+          o.frequency.exponentialRampToValueAtTime(70, t + 0.14);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o.connect(g).connect(ctx.destination);
+          o.start(t);
+          o.stop(t + 0.24);
+        },
+        win() {
+          if (this.muted) {
+            return;
+          }
+          this.resume();
+          if (!this.ctx) return;
+          const notes = [523, 659, 784, 1047, 1319];
+          const t0 = this.ctx.currentTime;
+          notes.forEach((f, i) => {
+            const o = this.ctx.createOscillator(),
+              g = this.ctx.createGain();
+            o.type = "triangle";
+            o.frequency.value = f;
+            const t = t0 + i * 0.11;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.26, t + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            o.connect(g).connect(this.ctx.destination);
+            o.start(t);
+            o.stop(t + 0.5);
+          });
+        },
+        // bigger flourish for the final podium: rising run + sustained chord
+        fanfare() {
+          if (this.muted) return;
+          this.resume();
+          if (!this.ctx) return;
+          const t0 = this.ctx.currentTime;
+          const run = [392, 523, 659, 784, 1047, 1319];
+          run.forEach((f, i) => {
+            const o = this.ctx.createOscillator(),
+              g = this.ctx.createGain();
+            o.type = "triangle";
+            o.frequency.value = f;
+            const t = t0 + i * 0.1;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.3, t + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+            o.connect(g).connect(this.ctx.destination);
+            o.start(t);
+            o.stop(t + 0.55);
+          });
+          const tc = t0 + run.length * 0.1 + 0.05;
+          [523, 659, 784, 1047].forEach((f) => {
+            const o = this.ctx.createOscillator(),
+              g = this.ctx.createGain();
+            o.type = "triangle";
+            o.frequency.value = f;
+            g.gain.setValueAtTime(0.0001, tc);
+            g.gain.exponentialRampToValueAtTime(0.22, tc + 0.04);
+            g.gain.exponentialRampToValueAtTime(0.001, tc + 1.2);
+            o.connect(g).connect(this.ctx.destination);
+            o.start(tc);
+            o.stop(tc + 1.3);
+          });
+        },
+      };
+
+      /* ---------- fullscreen ---------- */
+      function toggleFs() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      }
+
+      /* ---------- error ---------- */
+      function showError(e) {
+        console.error(e);
+        const isHtml = String((e && e.message) || "").includes("html");
+        const tip = isHtml
+          ? `That link returned a web page, not data. Use <b>File → Share → Publish to web</b>, pick one tab, format <b>.csv</b>, then paste that link.`
+          : `Use <b>File → Share → Publish to web</b> (one tab, CSV) or share “Anyone with the link → Viewer”. If you opened this file directly, host it (drag onto app.netlify.com/drop) — local files have stricter rules.`;
+        $("#settingsHint").innerHTML =
+          `<span style="color:var(--coral)">Couldn't read that sheet.</span> ${tip}`;
+        setStatus(
+          '<span class="warn">Couldn’t read that sheet — check Settings.</span>',
+        );
+      }
+
+      /* ---------- events ---------- */
+      function toggleControls(force) {
+        const el = $("#controls");
+        const open =
+          force === undefined ? !el.classList.contains("open") : force;
+        el.classList.toggle("open", open);
+        if (!open) $("#panel").classList.remove("open");
+      }
+      $("#gearBtn").onclick = () => toggleControls();
+      $("#ctrlClose").onclick = () => toggleControls(false);
+      $("#drawLever").onclick = draw;
+      $("#spinBtn2").onclick = draw;
+      $("#settingsBtn").onclick = () => $("#panel").classList.toggle("open");
+      $("#refreshBtn").onclick = async () => {
+        if (!state.live) {
+          startRun();
+          return;
+        }
+        if (state.winners.length) {
+          if (
+            !confirm(
+              "Refresh from the sheet? This resets the current raffle run.",
+            )
+          )
+            return;
+        }
+        try {
+          await loadFromUrl(state.url);
+        } catch (e) {
+          showError(e);
+        }
+      };
+      $("#loadBtn").onclick = async () => {
+        const url = $("#urlInput").value.trim();
+        state.map.name = $("#colName").value;
+        state.map.tickets = $("#colTickets").value;
+        state.map.email = $("#colEmail").value;
+        if (!url) {
+          startRun();
+          $("#panel").classList.remove("open");
+          return;
+        }
+        try {
+          await loadFromUrl(url);
+          $("#panel").classList.remove("open");
+        } catch (e) {
+          showError(e);
+        }
+      };
+      ["colName", "colTickets", "colEmail"].forEach((id) => {
+        $("#" + id).onchange = () => {
+          state.map.name = $("#colName").value;
+          state.map.tickets = $("#colTickets").value;
+          state.map.email = $("#colEmail").value;
+          if (state.live) {
+            startRun();
+          }
+        };
+      });
+      $("#sampleSelect").onchange = (e) => {
+        const n = parseInt(e.target.value, 10);
+        state.live = false;
+        state.url = "";
+        state.sampleData = n === 12 ? null : generateSample(n);
+        startRun();
+      };
+      $("#wallBtn").onclick = openWall;
+      $("#exportBtn").onclick = exportWinnersCSV;
+      $("#wallCloseBtn").onclick = closeWall;
+      $("#wallClearBtn").onclick = clearLog;
+      $("#podWallBtn").onclick = openWall;
+      $("#podResetBtn").onclick = startOver;
+      $("#resetBtn").onclick = startOver;
+      $("#fsBtn").onclick = toggleFs;
+      $("#muteBtn").onclick = () => {
+        Sound.muted = !Sound.muted;
+        state.muted = Sound.muted;
+        $("#muteBtn").innerHTML =
+          `<span class="ic">${Sound.muted ? "🔇" : "🔊"}</span> ${Sound.muted ? "Muted" : "Sound"}`;
+      };
+
+      addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
+          return;
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (state.phase === "idle") draw();
+          else if (state.phase === "revealing") {
+            const b = $("#nextBtn");
+            if (b) b.click();
+          }
+        } else if (e.key === "f" || e.key === "F") {
+          toggleFs();
+        } else if (e.key === "c" || e.key === "C") {
+          toggleControls();
+        } else if (e.key === "Escape") {
+          closeWall();
+          $("#panel").classList.remove("open");
+          toggleControls(false);
+        }
+      });
+
+      /* ---------- boot ---------- */
+      (async function () {
+        $("#urlInput").value = DEFAULT_SHEET_URL;
+        startMachine();
+        renderStrip();
+        if (DEFAULT_SHEET_URL) {
+          try {
+            await loadFromUrl(DEFAULT_SHEET_URL);
+          } catch (e) {
+            startRun();
+            showError(e);
+          }
+        } else startRun();
+      })();
+    </script>
+  </body>
+</html>
