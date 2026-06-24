@@ -1924,6 +1924,102 @@
         }
       }
 
+      /* ===== draw-time fx: raffle tickets, streamers, brand-phrase banners ===== */
+      .drawfx {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .drawfx > * {
+        position: absolute;
+        opacity: 0;
+        will-change: transform, opacity;
+      }
+      .fx-ticket {
+        width: 52px;
+        height: 33px;
+        border-radius: 6px;
+        background: var(--card);
+        border: 2px dashed var(--green-200);
+        box-shadow: var(--shadow-card);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        animation: fxRise var(--dur) cubic-bezier(0.25, 0.6, 0.35, 1) forwards;
+      }
+      .fx-streamer {
+        height: clamp(7px, 0.9vh, 12px);
+        border-radius: 999px;
+        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+      }
+      .fx-banner {
+        display: inline-flex;
+        align-items: center;
+        padding: clamp(7px, 0.9vh, 11px) clamp(22px, 2vw, 30px)
+          clamp(7px, 0.9vh, 11px) clamp(13px, 1.1vw, 18px);
+        border-radius: 7px;
+        font-family: "Fredoka", sans-serif;
+        font-weight: 700;
+        font-size: clamp(16px, 1.5vw, 26px);
+        color: #fff;
+        white-space: nowrap;
+        box-shadow: var(--shadow-lift);
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          calc(100% - 13px) 50%,
+          100% 100%,
+          0 100%
+        );
+        animation: fxFly var(--dur) cubic-bezier(0.2, 0.55, 0.3, 1) forwards;
+      }
+      @keyframes fxRise {
+        0% {
+          opacity: 0;
+          transform: translate(0, 0) rotate(0deg);
+        }
+        14% {
+          opacity: var(--op);
+        }
+        50% {
+          transform: translate(var(--mx), var(--my))
+            rotate(calc(var(--spin) * 0.5));
+        }
+        86% {
+          opacity: var(--op);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--dx), var(--dy)) rotate(var(--spin));
+        }
+      }
+      @keyframes fxFly {
+        0% {
+          opacity: 0;
+          transform: translate(0, 0) rotate(var(--rot)) scale(0.9);
+        }
+        12% {
+          opacity: var(--op);
+        }
+        50% {
+          transform: translate(var(--mx), var(--my)) rotate(var(--rot)) scale(1);
+        }
+        88% {
+          opacity: var(--op);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .drawfx {
+          display: none;
+        }
+      }
+
       /* ===== orchestrated intro on load ===== */
       @keyframes introPop {
         0% {
@@ -3535,6 +3631,7 @@
         clearOutball();
 
         pullLever();
+        launchDrawFx(state.prizeIndex);
         Sound.shuffle();
         M3.churn = SHUFFLE_CHURN;
         M3.churnTarget = SHUFFLE_CHURN;
@@ -3592,6 +3689,7 @@
       <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
       <button class="btn btn-go" id="nextBtn">${isLastDraw() ? "🏆 Show winners" : "Next prize →"}</button>
     </div>`;
+        clearDrawFx();
         const fl = $("#flash");
         fl.classList.remove("go");
         void fl.offsetWidth;
@@ -4396,6 +4494,208 @@
       });
 
       /* ---------- ambient motes ---------- */
+      /* ---------- draw-time fx (tickets + streamers + brand banners) ---------- */
+      const PHRASES = [
+        "Real-time visibility",
+        "See student thinking",
+        "In-the-moment feedback",
+        "Teacher-guided AI",
+        "Supporting diverse learners",
+      ];
+      const BANNER_COLORS = [
+        "var(--green-400)",
+        "var(--azure)",
+        "var(--violet)",
+        "var(--coral)",
+        "var(--orange)",
+      ];
+      const STREAMER_COLORS = [
+        "var(--green-300)",
+        "var(--yellow)",
+        "var(--azure)",
+        "var(--violet)",
+        "var(--coral)",
+        "var(--orange)",
+        "var(--cyan)",
+        "var(--lime)",
+      ];
+      let fxTimers = [];
+
+      function fxRand(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function fxShuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function fxLayer() {
+        let layer = document.getElementById("drawfx");
+        if (!layer) {
+          layer = document.createElement("div");
+          layer.className = "drawfx";
+          layer.id = "drawfx";
+          $(".stage").appendChild(layer);
+        }
+        return layer;
+      }
+
+      function fxVars(el, v) {
+        for (const k in v) {
+          const val = v[k];
+          el.style.setProperty(
+            "--" + k,
+            typeof val === "number" && k !== "op" ? val + "px" : String(val),
+          );
+        }
+      }
+
+      function fxAdd(layer, el, durMs) {
+        el.style.setProperty("--dur", Math.round(durMs) + "ms");
+        el.addEventListener("animationend", () => el.remove());
+        layer.appendChild(el);
+      }
+
+      // start point + travel vector for an element entering from a lower corner
+      function fxGeom(side, W, H) {
+        const startX =
+          side < 0 ? fxRand(-0.06, 0.08) * W : fxRand(0.92, 1.06) * W;
+        const startY = fxRand(0.78, 1.04) * H;
+        const dx = -side * fxRand(0.78, 1.08) * W; // left emitter flies right, vice versa
+        const dy = -fxRand(0.85, 1.15) * H;
+        return { startX, startY, dx, dy };
+      }
+
+      function fxStreamer(layer, side, W, H) {
+        const g = fxGeom(side, W, H);
+        const c1 =
+          STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
+        const c2 =
+          STREAMER_COLORS[Math.floor(Math.random() * STREAMER_COLORS.length)];
+        const el = document.createElement("div");
+        el.className = "fx-streamer";
+        el.style.width = fxRand(7, 16) + "vw";
+        el.style.background = `repeating-linear-gradient(90deg, ${c1} 0 16px, ${c2} 16px 32px)`;
+        el.style.left = g.startX + "px";
+        el.style.top = g.startY + "px";
+        fxVars(el, {
+          dx: g.dx,
+          dy: g.dy,
+          mx: g.dx * 0.5 + fxRand(-0.05, 0.05) * W,
+          my: g.dy * 0.5 - fxRand(0.04, 0.1) * H,
+          rot: (Math.atan2(g.dy, g.dx) * 180) / Math.PI + "deg",
+          op: fxRand(0.7, 0.9),
+        });
+        fxAdd(layer, el, fxRand(2400, 3300));
+      }
+
+      function fxBanner(layer, side, text, idx, W, H) {
+        const g = fxGeom(side, W, H);
+        const el = document.createElement("div");
+        el.className = "fx-banner";
+        el.style.background = BANNER_COLORS[idx % BANNER_COLORS.length];
+        el.textContent = text;
+        el.style.left = g.startX + "px";
+        el.style.top = g.startY + "px";
+        fxVars(el, {
+          dx: g.dx,
+          dy: g.dy * 0.92,
+          mx: g.dx * 0.5,
+          my: g.dy * 0.5 - fxRand(0.03, 0.08) * H,
+          rot: (side < 0 ? fxRand(-25, -18) : fxRand(18, 25)) + "deg",
+          op: fxRand(0.92, 1),
+        });
+        fxAdd(layer, el, fxRand(2800, 3600));
+      }
+
+      function fxTicket(layer, W, H) {
+        const sx = fxRand(0.24, 0.76) * W;
+        const sy = fxRand(0.72, 0.96) * H;
+        const dx = fxRand(-0.18, 0.18) * W;
+        const dy = -fxRand(0.55, 0.95) * H;
+        const el = document.createElement("div");
+        el.className = "fx-ticket";
+        el.textContent = "🎟️";
+        el.style.left = sx + "px";
+        el.style.top = sy + "px";
+        fxVars(el, {
+          dx,
+          dy,
+          mx: dx * 0.5 + fxRand(-0.08, 0.08) * W,
+          my: dy * 0.5,
+          spin: fxRand(-220, 220) + "deg",
+          op: fxRand(0.82, 0.96),
+        });
+        fxAdd(layer, el, fxRand(2600, 3500));
+      }
+
+      // intensity scales with the prize tier (0 = $250 ... 2 = grand prize)
+      function launchDrawFx(tier) {
+        if (reduced()) return;
+        clearDrawFx(true);
+        const layer = fxLayer();
+        layer.style.transition = "";
+        layer.style.opacity = "1";
+        const W = layer.clientWidth || window.innerWidth;
+        const H = layer.clientHeight || window.innerHeight;
+        const t = Math.max(0, Math.min(2, tier));
+        const ticketN = [7, 10, 14][t];
+        const streamerN = [4, 6, 9][t]; // per side
+        const bannerN = [2, 3, 5][t];
+        const WINDOW = 3600; // spawn spread; everything clears before the reveal
+
+        for (let i = 0; i < ticketN; i++) {
+          fxTimers.push(
+            setTimeout(() => fxTicket(layer, W, H), fxRand(0, WINDOW)),
+          );
+        }
+        [-1, 1].forEach((side) => {
+          for (let i = 0; i < streamerN; i++) {
+            fxTimers.push(
+              setTimeout(
+                () => fxStreamer(layer, side, W, H),
+                fxRand(0, WINDOW),
+              ),
+            );
+          }
+        });
+        fxShuffle(PHRASES.slice())
+          .slice(0, bannerN)
+          .forEach((text, i) => {
+            const side = i % 2 === 0 ? -1 : 1;
+            fxTimers.push(
+              setTimeout(
+                () => fxBanner(layer, side, text, i, W, H),
+                fxRand(200, WINDOW - 400),
+              ),
+            );
+          });
+      }
+
+      function clearDrawFx(immediate) {
+        fxTimers.forEach(clearTimeout);
+        fxTimers = [];
+        const layer = document.getElementById("drawfx");
+        if (!layer) return;
+        if (immediate) {
+          layer.innerHTML = "";
+          layer.style.opacity = "";
+          layer.style.transition = "";
+          return;
+        }
+        layer.style.transition = "opacity 0.35s ease";
+        layer.style.opacity = "0";
+        setTimeout(() => {
+          layer.innerHTML = "";
+          layer.style.transition = "";
+          layer.style.opacity = "";
+        }, 380);
+      }
+
       function buildAtmo() {
         const atmo = $("#atmo");
         const colors = [
