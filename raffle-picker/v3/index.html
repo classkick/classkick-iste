@@ -2753,26 +2753,27 @@
         base.position.y = -DOME_R - 0.72;
         scene.add(base);
 
-        // stage platform: ground the whole machine on a polished brand stage,
-        // a deeper green than the base so the machine reads as standing on it
+        // stage platform: a polished metal turntable (matching the latch and
+        // catch) so the machine reads as standing on it, with clean contrast
+        // against the green base and the bright page
         const stage = new THREE.Mesh(
           new THREE.CylinderGeometry(3.9, 4.3, 0.55, 64),
           new THREE.MeshStandardMaterial({
-            color: 0x0b6b46,
-            roughness: 0.14,
-            metalness: 0.1,
-            envMapIntensity: 1.5,
+            color: 0xd6dade,
+            roughness: 0.28,
+            metalness: 0.55,
+            envMapIntensity: 1.45,
           }),
         );
         stage.position.set(0, -3.9 - 0.28, 0.7); // top at y = -3.9
         scene.add(stage);
-        // a thin light rim around the stage edge for a defined platform look
+        // a darker metal rim around the stage edge for a defined platform look
         const stageRim = new THREE.Mesh(
-          new THREE.TorusGeometry(3.92, 0.05, 12, 80),
+          new THREE.TorusGeometry(3.92, 0.06, 12, 80),
           new THREE.MeshStandardMaterial({
-            color: 0x6fe3b0,
-            roughness: 0.3,
-            metalness: 0.2,
+            color: 0x9aa3ab,
+            roughness: 0.32,
+            metalness: 0.6,
             envMapIntensity: 1.3,
           }),
         );
