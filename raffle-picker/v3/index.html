@@ -1651,6 +1651,53 @@
         display: block;
         z-index: 1;
       }
+      /* theatrical spotlight: darken everything but the dome during the draw */
+      .spotlight {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 40;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        background: radial-gradient(
+          circle at 52% 45%,
+          transparent 0%,
+          transparent 26%,
+          rgba(10, 30, 22, 0.55) 78%
+        );
+      }
+      .spotlight.show {
+        opacity: 1;
+      }
+      /* quick brand flash on the win */
+      .flash {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 60;
+        opacity: 0;
+        background: radial-gradient(
+          circle at 50% 45%,
+          rgba(255, 255, 255, 0.85),
+          rgba(37, 197, 130, 0.5) 60%,
+          transparent 80%
+        );
+      }
+      .flash.go {
+        animation: winflash 0.5s ease-out;
+      }
+      @keyframes winflash {
+        0% {
+          opacity: 0;
+        }
+        15% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
       /* suspense countdown over the chamber */
       .countdown {
         position: absolute;
@@ -1706,6 +1753,8 @@
   </head>
   <body>
     <canvas id="confetti"></canvas>
+    <div class="spotlight" id="spotlight"></div>
+    <div class="flash" id="flash"></div>
 
     <div class="app">
       <svg class="corner-scrib" viewBox="0 0 150 60" aria-hidden="true">
@@ -3148,6 +3197,7 @@
         // reset any extraction visual state; balls are rebuilt by renderWheel
         M3.tween = null;
         M3.hatchTarget = 0;
+        $("#spotlight")?.classList.remove("show");
         if (M3.winnerBall) M3.winnerBall.extracting = false;
         M3.winnerBall = null;
       }
@@ -3186,6 +3236,7 @@
 
         pullLever();
         Sound.shuffle();
+        $("#spotlight").classList.add("show"); // focus the room on the chamber
         M3.churn = SHUFFLE_CHURN;
         M3.churnTarget = SHUFFLE_CHURN;
         M3.gravity = SHUFFLE_GRAV;
@@ -3242,10 +3293,16 @@
       <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
       <button class="btn btn-go" id="nextBtn">${isLastDraw() ? "🏆 Show winners" : "Next prize →"}</button>
     </div>`;
+        $("#spotlight").classList.remove("show");
+        const fl = $("#flash");
+        fl.classList.remove("go");
+        void fl.offsetWidth;
+        fl.classList.add("go");
         $("#winScrim").classList.add("show");
         requestAnimationFrame(() => card.classList.add("in"));
         Sound.win();
-        confettiBurst(120);
+        confettiBurst(240);
+        setTimeout(() => confettiBurst(160), 430);
         $("#redrawBtn").onclick = redraw;
         $("#nextBtn").onclick = confirmWinner;
       }
