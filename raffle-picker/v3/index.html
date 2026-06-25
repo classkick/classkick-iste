@@ -2243,10 +2243,14 @@
     <div class="panel" id="panel">
       <h2>Connect your Google Sheet</h2>
       <p>
-        Share it <b>“Anyone with the link → Viewer”</b>, or
-        <b>File → Share → Publish to web</b> (one tab, CSV). Then paste the
-        link.
+        Pick a saved sheet, or paste your own link (<b
+          >File → Share → Publish to web</b
+        >, one tab, CSV).
       </p>
+      <div class="field">
+        <label for="presetSelect">Saved sheets</label>
+        <select id="presetSelect"></select>
+      </div>
       <div class="field">
         <label for="urlInput">Google Sheet link</label>
         <input
@@ -2374,7 +2378,15 @@
    Paste your published Google Sheet link here to open
    straight to your data. Leave "" for the sample wheel.
    ════════════════════════════════════════════════ */
-      const DEFAULT_SHEET_URL = "";
+      // Saved sheets for the Settings dropdown (pick instead of pasting).
+      const SHEETS = [
+        {
+          label: "ISTE Scavenger Hunt (live)",
+          url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBTBDlSMiPUrfrHDgXzY0VMhwqHV2rwMJEZReGyUDTOWmmWkHmk_6lr5Z3p8P6_xpUvtNo_FWFt7JB/pubhtml",
+        },
+      ];
+      // opens straight to the first saved sheet; "" would start on the sample
+      const DEFAULT_SHEET_URL = SHEETS.length ? SHEETS[0].url : "";
 
       const PRIZES = [
         { place: "3rd", amount: "$250", medal: "🥉" },
@@ -2687,30 +2699,57 @@
         return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
       }
 
-      function guess(headers, kinds) {
+      function guess(headers, kinds, excludes = []) {
         const lc = headers.map((h) => h.toLowerCase());
+        const allowed = (i) => !excludes.some((x) => lc[i].includes(x));
         for (const k of kinds) {
-          const i = lc.findIndex((h) => h.includes(k));
+          const i = lc.findIndex((h, idx) => allowed(idx) && h.includes(k));
           if (i >= 0) return headers[i];
         }
         return "";
       }
       function autoMap(headers) {
+        // prefer the person column; never grab assignment/rank/id/url/score
         const name =
-          guess(headers, [
-            "name",
-            "email",
-            "teacher",
-            "user",
-            "player",
-            "who",
-          ]) ||
+          guess(
+            headers,
+            [
+              "display name",
+              "full name",
+              "student name",
+              "teacher name",
+              "student",
+              "teacher",
+              "participant",
+              "player",
+              "email",
+              "name",
+              "who",
+            ],
+            [
+              "assignment",
+              "class",
+              "raffle",
+              "rank",
+              "point",
+              "score",
+              "url",
+              "date",
+              "time",
+              "refreshed",
+            ],
+          ) ||
           headers[0] ||
           "";
+        // prefer the tickets column; avoid "raffle rank" and other near-misses
         const tickets =
-          guess(headers, ["raffle", "ticket", "entries", "entry", "draws"]) ||
-          "";
-        const email = guess(headers, ["email", "mail", "e-mail"]) || "";
+          guess(
+            headers,
+            ["raffle ticket", "ticket", "entries", "entry", "draws", "raffle"],
+            ["rank", "url", "name", "date", "time", "point", "score", "class"],
+          ) || "";
+        const email =
+          guess(headers, ["email", "e-mail", "mail"], ["url"]) || "";
         return { name, tickets, email };
       }
 
@@ -4465,6 +4504,30 @@
           showError(e);
         }
       };
+      function fillPresets() {
+        const sel = $("#presetSelect");
+        if (!sel) return;
+        sel.innerHTML =
+          SHEETS.map(
+            (s, i) => `<option value="${i}">${escapeHtml(s.label)}</option>`,
+          ).join("") +
+          `<option value="custom">Custom link… (paste below)</option>`;
+        const idx = SHEETS.findIndex((s) => s.url === $("#urlInput").value);
+        sel.value = idx >= 0 ? String(idx) : "custom";
+      }
+      $("#presetSelect").onchange = (e) => {
+        const v = e.target.value;
+        if (v === "custom") {
+          $("#urlInput").value = "";
+          $("#urlInput").focus();
+          return;
+        }
+        const s = SHEETS[parseInt(v, 10)];
+        if (s) {
+          $("#urlInput").value = s.url;
+          $("#loadBtn").click();
+        }
+      };
       $("#loadBtn").onclick = async () => {
         const url = $("#urlInput").value.trim();
         state.map.name = $("#colName").value;
@@ -4838,6 +4901,7 @@
       /* ---------- boot ---------- */
       (async function () {
         $("#urlInput").value = DEFAULT_SHEET_URL;
+        fillPresets();
         buildAtmo();
         startMachine();
         renderStrip();
