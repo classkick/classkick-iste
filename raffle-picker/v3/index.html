@@ -2602,6 +2602,18 @@
         const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
         return (first + (last ? "." + last : "") + ".").toUpperCase();
       }
+      // bigger reveals (winner card, podium) get a friendlier "Pablo N."
+      function firstLastInitial(v) {
+        let s = String(v || "").trim();
+        if (!s) return "?";
+        if (looksEmail(s)) s = localPart(s);
+        const parts = s.split(/[\s._\-]+/).filter(Boolean);
+        if (!parts.length) return "?";
+        const first =
+          parts[0][0].toUpperCase() + parts[0].slice(1).toLowerCase();
+        const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+        return last ? `${first} ${last.toUpperCase()}.` : first;
+      }
       function hashStr(str, mult) {
         let h = 0;
         for (let i = 0; i < str.length; i++)
@@ -3719,7 +3731,7 @@
         card.innerHTML = `
     <div class="ribbon"><span class="m">${p.medal}</span> ${p.amount} · ${p.place} prize</div>
     ${avaMarkup(entrant)}
-    <div class="nm">${escapeHtml(initials(entrant.name))}</div>
+    <div class="nm">${escapeHtml(firstLastInitial(entrant.name))}</div>
     <div class="cap">🎉 Winner! 🎉</div>
     <div class="acts">
       <button class="btn btn-ghost" id="redrawBtn">↻ Redraw</button>
@@ -3858,7 +3870,7 @@
       <div class="podcard">
         ${avaMarkup(o.w)}
         <div class="plc">${o.w.place} place</div>
-        <div class="nm">${escapeHtml(initials(o.w.name))}</div>
+        <div class="nm">${escapeHtml(firstLastInitial(o.w.name))}</div>
         <div class="amt">${o.w.amount}</div>
       </div>
     </div>`;
