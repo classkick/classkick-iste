@@ -2687,30 +2687,57 @@
         return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
       }
 
-      function guess(headers, kinds) {
+      function guess(headers, kinds, excludes = []) {
         const lc = headers.map((h) => h.toLowerCase());
+        const allowed = (i) => !excludes.some((x) => lc[i].includes(x));
         for (const k of kinds) {
-          const i = lc.findIndex((h) => h.includes(k));
+          const i = lc.findIndex((h, idx) => allowed(idx) && h.includes(k));
           if (i >= 0) return headers[i];
         }
         return "";
       }
       function autoMap(headers) {
+        // prefer the person column; never grab assignment/rank/id/url/score
         const name =
-          guess(headers, [
-            "name",
-            "email",
-            "teacher",
-            "user",
-            "player",
-            "who",
-          ]) ||
+          guess(
+            headers,
+            [
+              "display name",
+              "full name",
+              "student name",
+              "teacher name",
+              "student",
+              "teacher",
+              "participant",
+              "player",
+              "email",
+              "name",
+              "who",
+            ],
+            [
+              "assignment",
+              "class",
+              "raffle",
+              "rank",
+              "point",
+              "score",
+              "url",
+              "date",
+              "time",
+              "refreshed",
+            ],
+          ) ||
           headers[0] ||
           "";
+        // prefer the tickets column; avoid "raffle rank" and other near-misses
         const tickets =
-          guess(headers, ["raffle", "ticket", "entries", "entry", "draws"]) ||
-          "";
-        const email = guess(headers, ["email", "mail", "e-mail"]) || "";
+          guess(
+            headers,
+            ["raffle ticket", "ticket", "entries", "entry", "draws", "raffle"],
+            ["rank", "url", "name", "date", "time", "point", "score", "class"],
+          ) || "";
+        const email =
+          guess(headers, ["email", "e-mail", "mail"], ["url"]) || "";
         return { name, tickets, email };
       }
 
