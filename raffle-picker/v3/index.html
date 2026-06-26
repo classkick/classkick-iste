@@ -3719,7 +3719,7 @@
 
         pullLever();
         launchDrawFx(state.prizeIndex);
-        Sound.shuffle();
+        Sound.shuffle(state.prizeIndex);
         M3.churn = SHUFFLE_CHURN;
         M3.churnTarget = SHUFFLE_CHURN;
         M3.gravity = SHUFFLE_GRAV;
@@ -4191,12 +4191,17 @@
           "./assets/sfx/groove-journey.mp3",
         ],
         _music: null,
-        playGroove() {
+        playGroove(prizeIdx) {
           if (this.muted) return;
           try {
             this.stopGroove();
-            const src =
-              this.tracks[Math.floor(Math.random() * this.tracks.length)];
+            // 3rd -> track 1 (Groove Machine), 2nd -> track 2 (Groove Journey),
+            // 1st/grand (or anything else) -> random
+            let i;
+            if (prizeIdx === 0) i = 0;
+            else if (prizeIdx === 1) i = 1;
+            else i = Math.floor(Math.random() * this.tracks.length);
+            const src = this.tracks[i];
             const a = new Audio(src);
             a.volume = 0.8;
             a.play().catch(() => {});
@@ -4236,9 +4241,9 @@
         // a smooth tumbling bed for the whole shuffle: a soft low hum plus a
         // gently wobbling filtered-noise rattle (balls tumbling in a drum),
         // instead of jarring per-collision ticks
-        shuffle() {
+        shuffle(prizeIdx) {
           this.resume();
-          this.playGroove();
+          this.playGroove(prizeIdx);
         },
         // soft, light plastic-ball tap (rounded lowpassed noise)
         clack(vol) {
